@@ -1,0 +1,1 @@
+Always use the Playwright MCP to check your work
