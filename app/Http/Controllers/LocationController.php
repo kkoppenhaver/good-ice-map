@@ -5,17 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Location;
 use App\Models\LocationImage;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controllers\HasMiddleware;
-use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Storage;
 
-class LocationController extends Controller implements HasMiddleware
+class LocationController extends Controller
 {
-    public static function middleware(): array
+    public function __construct()
     {
-        return [
-            new Middleware('auth', except: ['index', 'show', 'api']),
-        ];
+        $this->middleware('auth')->except(['index', 'show', 'api']);
     }
 
     /**
