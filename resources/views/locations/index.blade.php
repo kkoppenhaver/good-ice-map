@@ -100,6 +100,24 @@
         .leaflet-container {
             border: none !important;
         }
+
+        /* Brutalist map styling - high contrast, stark aesthetic */
+        .leaflet-tile-container {
+            filter: contrast(1.15) brightness(1.05);
+        }
+
+        /* Make tile transitions instant for brutalist feel */
+        .leaflet-tile {
+            image-rendering: crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
+        }
+
+        /* Style the map container with border */
+        #map {
+            border-left: 5px solid black;
+            border-right: 5px solid black;
+            border-bottom: 5px solid black;
+        }
     </style>
 </head>
 <body class="font-mono bg-white text-black">
@@ -141,10 +159,13 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map').setView([41.8781, -87.6298], 12);
+        // Center on test marker location with higher zoom
+        const map = L.map('map').setView([41.957631, -87.654463], 14);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
+        // Stamen Toner tiles for brutalist black and white aesthetic
+        L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 20
         }).addTo(map);
 
         // Custom marker icon with purple color - map pin shape
