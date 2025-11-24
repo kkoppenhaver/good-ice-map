@@ -21,6 +21,11 @@ class Location extends Model
         'status',
         'average_rating',
         'total_ratings',
+        'place_id',
+        'source',
+        'scraped_at',
+        'ice_score',
+        'business_type',
     ];
 
     protected $casts = [
@@ -28,6 +33,8 @@ class Location extends Model
         'longitude' => 'decimal:8',
         'average_rating' => 'decimal:2',
         'total_ratings' => 'integer',
+        'ice_score' => 'integer',
+        'scraped_at' => 'datetime',
     ];
 
     public function submittedBy(): BelongsTo
