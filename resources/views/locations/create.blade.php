@@ -358,67 +358,7 @@
             }
         });
 
-        function displayPlaceDetails(placeDetails, data) {
-            // Prioritize place name from URL parsing, use API name only as fallback
-            const name = data.name || placeDetails.name || '';
-            // For address, prefer API's full address
-            const address = placeDetails.address || data.address || '';
-            const description = placeDetails.description || '';
-            const lat = placeDetails.lat || data.lat;
-            const lng = placeDetails.lng || data.lng;
 
-            // Update hidden fields
-            document.getElementById('hidden_name').value = name;
-            document.getElementById('hidden_address').value = address;
-            document.getElementById('hidden_latitude').value = lat;
-            document.getElementById('hidden_longitude').value = lng;
-
-            // Auto-fill description if we got one from Places API
-            if (description) {
-                document.getElementById('description').value = description;
-            }
-
-            // Update preview - prominently show address, hide coordinates
-            let previewHTML = '<div class="space-y-3">';
-            if (name) {
-                previewHTML += `<p class="text-lg"><span class="font-bold">Location:</span> ${name}</p>`;
-            }
-            if (address && address !== name) {
-                previewHTML += `<p class="text-base"><span class="font-bold">Address:</span> ${address}</p>`;
-            }
-            if (description) {
-                previewHTML += `<p class="text-sm text-gray-700"><span class="font-bold">Description:</span> ${description}</p>`;
-            }
-            if (placeDetails.rating) {
-                previewHTML += `<p class="text-sm"><span class="font-bold">Google Rating:</span> ${placeDetails.rating} ⭐ (${placeDetails.user_ratings_total} reviews)</p>`;
-            }
-            previewHTML += `<p class="text-xs text-gray-500">Coordinates: ${lat}, ${lng}</p>`;
-            previewHTML += '</div>';
-
-            document.getElementById('preview_content').innerHTML = previewHTML;
-        }
-
-        function useBasicData(data) {
-            // Update hidden fields with extracted data from URL
-            document.getElementById('hidden_name').value = data.name || '';
-            document.getElementById('hidden_address').value = data.address || data.name || '';
-            document.getElementById('hidden_latitude').value = data.lat;
-            document.getElementById('hidden_longitude').value = data.lng;
-
-            // Update preview
-            let previewHTML = '<div class="space-y-2">';
-            if (data.name) {
-                previewHTML += `<p><span class="font-bold">Name:</span> ${data.name}</p>`;
-            }
-            if (data.address) {
-                previewHTML += `<p><span class="font-bold">Address:</span> ${data.address}</p>`;
-            }
-            previewHTML += `<p><span class="font-bold">Coordinates:</span> ${data.lat}, ${data.lng}</p>`;
-            previewHTML += '<p class="text-gray-500 text-xs italic mt-2">Note: Could not fetch additional details from Google Places API. Data extracted from URL only.</p>';
-            previewHTML += '</div>';
-
-            document.getElementById('preview_content').innerHTML = previewHTML;
-        }
 
         function displayLocationWithMap(data, mapsUrl) {
             const name = data.name || '';
