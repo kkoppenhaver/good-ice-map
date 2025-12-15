@@ -429,9 +429,10 @@
         });
 
         function displayPlaceDetails(placeDetails, data) {
-            // Use Places API data if available, otherwise fall back to URL parsing
-            const name = placeDetails.name || data.name || '';
-            const address = placeDetails.address || data.address || data.name || '';
+            // Prioritize place name from URL parsing, use API name only as fallback
+            const name = data.name || placeDetails.name || '';
+            // For address, prefer API's full address
+            const address = placeDetails.address || data.address || '';
             const description = placeDetails.description || '';
             const lat = placeDetails.lat || data.lat;
             const lng = placeDetails.lng || data.lng;
