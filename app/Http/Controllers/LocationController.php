@@ -158,19 +158,20 @@ class LocationController extends Controller
         try {
             $placeId = $validated['place_id'] ?? null;
 
-            // If we don't have a Place ID, use Nearby Search to find it
+            // If we don't have a Place ID, try to find it using Geocoding API for precise location
             if (empty($placeId)) {
                 $lat = $validated['lat'];
                 $lng = $validated['lng'];
-                
-                $nearbyUrl = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?" . http_build_query([
-                    'location' => "$lat,$lng",
-                    'radius' => 50, // 50 meters radius
+
+                // Use Geocoding API to get the precise address and place_id
+                $geocodeUrl = "https://maps.googleapis.com/maps/api/geocode/json?" . http_build_query([
+                    'latlng' => "$lat,$lng",
+                    'result_type' => 'street_address|premise|establishment',
                     'key' => $apiKey
                 ]);
 
                 $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, $nearbyUrl);
+                curl_setopt($ch, CURLOPT_URL, $geocodeUrl);
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_TIMEOUT, 10);
                 $response = curl_exec($ch);
