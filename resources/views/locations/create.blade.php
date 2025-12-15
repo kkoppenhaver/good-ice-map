@@ -264,16 +264,16 @@
                 // Extract data from the URL
                 let name = null, address = null, lat = null, lng = null, placeId = null;
 
-                // Extract Place ID - try multiple patterns
-                // Pattern 1: !1s[PLACE_ID]!
-                let match = fullUrl.match(/!1s([A-Za-z0-9_-]{10,})/);
+                // Extract Place ID - only accept ChIJ format (valid Google Places IDs)
+                // Pattern 1: !1s[PLACE_ID]! where PLACE_ID starts with ChIJ
+                let match = fullUrl.match(/!1s(ChIJ[A-Za-z0-9_-]+)/);
                 if (match) {
                     placeId = match[1];
                 }
 
-                // Pattern 2: data=...!4m...!1s[PLACE_ID]
+                // Pattern 2: data=...!4m...!1s[PLACE_ID] where PLACE_ID starts with ChIJ
                 if (!placeId) {
-                    match = fullUrl.match(/data=[^!]*!4m[^!]*!1s([A-Za-z0-9_-]{10,})/);
+                    match = fullUrl.match(/data=[^!]*!4m[^!]*!1s(ChIJ[A-Za-z0-9_-]+)/);
                     if (match) {
                         placeId = match[1];
                     }
