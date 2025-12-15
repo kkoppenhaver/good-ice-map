@@ -349,79 +349,9 @@
 
             const data = await parseGoogleMapsLink(url);
 
-            if (data && (data.lat && data.lng)) {
-                // We have coordinates - fetch enriched place details from Google Places API
-                document.getElementById('preview_content').innerHTML =
-                    '<p class="text-gray-600">Fetching place details from Google...</p>';
-
-                try {
-                    const response = await fetch('/api/fetch-place-details', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            lat: data.lat,
-                            lng: data.lng,
-                            place_id: data.placeId || null
-                        })
-                    });
-
-                    if (response.ok) {
-                        const placeDetails = await response.json();
-
-                        if (placeDetails.success) {
-                            displayPlaceDetails(placeDetails, data);
-                        } else {
-                            // Places API failed, use basic data from URL parsing
-                            useBasicData(data);
-                        }
-                    } else {
-                        // API call failed, use basic data from URL parsing
-                        useBasicData(data);
-                    }
-                } catch (error) {
-                    console.error('Error fetching place details:', error);
-                    // On error, use basic data from URL parsing
-                    useBasicData(data);
-                }
-            } else if (data && data.name) {
-                // No coordinates but we have a place name - try text search
-                document.getElementById('preview_content').innerHTML =
-                    '<p class="text-gray-600">Searching for place by name...</p>';
-
-                try {
-                    const response = await fetch('/api/search-place', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            query: data.name
-                        })
-                    });
-
-                    if (response.ok) {
-                        const searchResult = await response.json();
-
-                        if (searchResult.success) {
-                            // Update data with search results
-                            data.lat = searchResult.lat;
-                            data.lng = searchResult.lng;
-                            data.address = searchResult.address;
-                            data.placeId = searchResult.place_id;
-
-                            displayPlaceDetails(searchResult, data);
-                        } else {
-                            showError();
-                        }
-                    } else {
-                        showError();
-                    }
-                } catch (error) {
-                    console.error('Error searching for place:', error);
-                    showError();
-                }
+            if (data && data.lat && data.lng && data.name) {
+                // We have everything we need from the URL - display immediately with map preview
+                displayLocationWithMap(data, url);
             } else {
                 // Invalid link - show error
                 showError();
@@ -485,6 +415,31 @@
             }
             previewHTML += `<p><span class="font-bold">Coordinates:</span> ${data.lat}, ${data.lng}</p>`;
             previewHTML += '<p class="text-gray-500 text-xs italic mt-2">Note: Could not fetch additional details from Google Places API. Data extracted from URL only.</p>';
+            previewHTML += '</div>';
+
+            document.getElementById('preview_content').innerHTML = previewHTML;
+        }
+
+        function displayLocationWithMap(data, mapsUrl) {
+            const name = data.name || '';
+            const lat = data.lat;
+            const lng = data.lng;
+
+            // Update hidden fields
+            document.getElementById('hidden_name').value = name;
+            document.getElementById('hidden_address').value = name; // Use name as address for consistency
+            document.getElementById('hidden_latitude').value = lat;
+            document.getElementById('hidden_longitude').value = lng;
+
+            // Generate Google Maps Static API image URL
+            const mapImageUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=600x300&markers=color:red%7C${lat},${lng}&key={{ config('services.google.places_api_key') }}`;
+
+            // Update preview with map image
+            let previewHTML = '<div class="space-y-3">';
+            previewHTML += `<p class="text-lg"><span class="font-bold">Location:</span> ${name}</p>`;
+            previewHTML += `<div class="mt-3"><img src="${mapImageUrl}" alt="Map preview" class="w-full border-2 border-black" /></div>`;
+            previewHTML += `<p class="text-xs text-gray-500">Coordinates: ${lat}, ${lng}</p>`;
+            previewHTML += `<p class="text-xs text-gray-500"><a href="${mapsUrl}" target="_blank" class="underline hover:text-primary-600">View on Google Maps</a></p>`;
             previewHTML += '</div>';
 
             document.getElementById('preview_content').innerHTML = previewHTML;
