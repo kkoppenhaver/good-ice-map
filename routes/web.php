@@ -8,8 +8,15 @@ use Illuminate\Support\Facades\Route;
 // Home page with map
 Route::get('/', [LocationController::class, 'index'])->name('home');
 
-// API endpoint for map markers
+// Public API endpoint for map markers (no auth required)
 Route::get('/api/locations', [LocationController::class, 'api'])->name('api.locations');
+
+// Protected API endpoints (require authentication but no CSRF for AJAX)
+Route::middleware(['auth'])->group(function () {
+    Route::post('/api/expand-url', [LocationController::class, 'expandUrl'])->name('api.expand-url');
+    Route::post('/api/search-place', [LocationController::class, 'searchPlace'])->name('api.search-place');
+    Route::post('/api/fetch-place-details', [LocationController::class, 'fetchPlaceDetails'])->name('api.fetch-place-details');
+});
 
 // Location routes
 Route::resource('locations', LocationController::class)->except(['index', 'edit', 'update', 'destroy']);

@@ -15,6 +15,7 @@ class Location extends Model
         'name',
         'description',
         'address',
+        'google_maps_link',
         'latitude',
         'longitude',
         'submitted_by',
