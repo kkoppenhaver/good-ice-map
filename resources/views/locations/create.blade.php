@@ -1,4 +1,8 @@
 <x-app-layout>
+    @push('head-scripts')
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google.places_api_key') }}&libraries=places"></script>
+    @endpush
+
     <x-slot name="header">
         Submit New Location
     </x-slot>
@@ -6,7 +10,7 @@
     <div class="py-12">
         <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white border-5 border-black shadow-brutal-lg p-8">
-                <form method="POST" action="{{ route('locations.store') }}" enctype="multipart/form-data" class="space-y-6">
+                <form method="POST" action="{{ route('locations.store') }}" enctype="multipart/form-data" class="space-y-6" onsubmit="return validateManualEntry(event)">
                     @csrf
 
                     <!-- Google Maps Link Section (visible by default) -->
@@ -69,21 +73,28 @@
                                 @enderror
                             </div>
 
-                            <!-- Address -->
+                            <!-- Address with Google Places Autocomplete -->
                             <div>
                                 <label for="manual_address" class="block font-bold uppercase text-sm mb-2">
-                                    Address *
+                                    Search for a Place *
                                 </label>
                                 <input
                                     type="text"
                                     id="manual_address"
                                     name="manual_address"
                                     value="{{ old('manual_address') }}"
-                                    placeholder="123 Main St, City, State, ZIP"
+                                    placeholder="Start typing to search for a place..."
+                                    autocomplete="off"
                                     class="w-full px-4 py-3 border-3 border-black font-mono focus:outline-none focus:border-primary-600 @error('manual_address') border-red-600 @enderror"
                                 />
-                                <p class="text-sm text-gray-600 mt-2">
-                                    We'll automatically determine the coordinates from the address
+                                <p id="autocomplete_hint" class="text-sm text-gray-600 mt-2">
+                                    Type an address or place name and select from the dropdown
+                                </p>
+                                <p id="autocomplete_success" class="text-sm text-green-600 mt-2 hidden">
+                                    ✓ Place selected successfully
+                                </p>
+                                <p id="autocomplete_error" class="text-sm text-red-600 mt-2 hidden">
+                                    Please select a place from the dropdown list
                                 </p>
                                 @error('manual_address')
                                     <p class="text-red-600 text-sm mt-2">{{ $message }}</p>
@@ -167,72 +178,150 @@
 
     @push('scripts')
     <script>
+        let isManualMode = false;
+
+        // Form validation function called by onsubmit
+        function validateManualEntry(event) {
+            if (isManualMode && !manualPlaceSelected) {
+                event.preventDefault();
+                showAutocompleteError();
+                return false;
+            }
+            return true;
+        }
+
         function switchToManualEntry() {
+            isManualMode = true;
+
             // Hide Google Maps section
             document.getElementById('google_maps_section').style.display = 'none';
-            
+
             // Show manual entry section
             document.getElementById('manual_entry_section').style.display = 'block';
-            
+
             // Show additional fields (but hide the auto-fill preview)
             document.getElementById('additional_fields_section').style.display = 'block';
             document.getElementById('autofilled_preview').style.display = 'none';
-            
+
             // Update required fields
             document.getElementById('google_maps_link').removeAttribute('required');
             document.getElementById('manual_address').setAttribute('required', 'required');
             document.getElementById('manual_name').setAttribute('required', 'required');
-            
-            // Clear Google Maps link and hidden fields
+
+            // DISABLE hidden fields so they don't override manual entry fields
+            // (both have name="name", name="latitude", name="longitude")
+            document.getElementById('hidden_name').disabled = true;
+            document.getElementById('hidden_address').disabled = true;
+            document.getElementById('hidden_latitude').disabled = true;
+            document.getElementById('hidden_longitude').disabled = true;
+
+            // Clear Google Maps link
             document.getElementById('google_maps_link').value = '';
-            document.getElementById('hidden_name').value = '';
-            document.getElementById('hidden_address').value = '';
-            document.getElementById('hidden_latitude').value = '';
-            document.getElementById('hidden_longitude').value = '';
         }
 
-        async function geocodeAddress(address) {
-            try {
-                // Using Nominatim (OpenStreetMap's free geocoding service)
-                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`, {
-                    headers: {
-                        'User-Agent': 'GoodIceMap/1.0'
-                    }
-                });
-                const data = await response.json();
-                
-                if (data && data.length > 0) {
-                    return {
-                        lat: data[0].lat,
-                        lng: data[0].lon,
-                        displayName: data[0].display_name
-                    };
-                }
-                return null;
-            } catch (error) {
-                console.error('Geocoding error:', error);
-                return null;
-            }
-        }
+        // Track whether a valid place was selected from autocomplete
+        let manualPlaceSelected = false;
+        let autocomplete = null;
 
-        // Geocode address on blur
-        document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Google Places Autocomplete for manual entry
+        function initAutocomplete() {
             const manualAddressInput = document.getElementById('manual_address');
-            if (manualAddressInput) {
-                manualAddressInput.addEventListener('blur', async function() {
-                    const address = this.value.trim();
-                    if (!address) return;
+            if (!manualAddressInput || !google?.maps?.places) return;
 
-                    const result = await geocodeAddress(address);
-                    if (result) {
-                        document.getElementById('manual_latitude').value = result.lat;
-                        document.getElementById('manual_longitude').value = result.lng;
-                    } else {
-                        alert('Could not find coordinates for this address. Please check the address and try again.');
+            autocomplete = new google.maps.places.Autocomplete(manualAddressInput, {
+                types: ['establishment', 'geocode'],
+                fields: ['name', 'formatted_address', 'geometry', 'place_id']
+            });
+
+            // Handle place selection
+            autocomplete.addListener('place_changed', function() {
+                const place = autocomplete.getPlace();
+
+                if (place.geometry && place.geometry.location) {
+                    // Valid place selected
+                    manualPlaceSelected = true;
+
+                    // Populate the name field with the place name
+                    document.getElementById('manual_name').value = place.name || place.formatted_address;
+
+                    // Populate coordinates
+                    document.getElementById('manual_latitude').value = place.geometry.location.lat();
+                    document.getElementById('manual_longitude').value = place.geometry.location.lng();
+
+                    // Update UI to show success
+                    document.getElementById('autocomplete_hint').classList.add('hidden');
+                    document.getElementById('autocomplete_error').classList.add('hidden');
+                    document.getElementById('autocomplete_success').classList.remove('hidden');
+                    manualAddressInput.classList.remove('border-red-600');
+                    manualAddressInput.classList.add('border-green-600');
+
+                    console.log('Place selected:', {
+                        name: place.name,
+                        address: place.formatted_address,
+                        lat: place.geometry.location.lat(),
+                        lng: place.geometry.location.lng()
+                    });
+                } else {
+                    // No valid place selected (user pressed enter without selecting)
+                    invalidatePlaceSelection();
+                }
+            });
+
+            // Reset validation when user types (they need to select from dropdown again)
+            manualAddressInput.addEventListener('input', function() {
+                if (manualPlaceSelected) {
+                    invalidatePlaceSelection();
+                }
+            });
+        }
+
+        function invalidatePlaceSelection() {
+            manualPlaceSelected = false;
+            document.getElementById('manual_latitude').value = '';
+            document.getElementById('manual_longitude').value = '';
+            document.getElementById('autocomplete_success').classList.add('hidden');
+            document.getElementById('autocomplete_hint').classList.remove('hidden');
+
+            const manualAddressInput = document.getElementById('manual_address');
+            manualAddressInput.classList.remove('border-green-600');
+        }
+
+        function showAutocompleteError() {
+            document.getElementById('autocomplete_hint').classList.add('hidden');
+            document.getElementById('autocomplete_success').classList.add('hidden');
+            document.getElementById('autocomplete_error').classList.remove('hidden');
+
+            const manualAddressInput = document.getElementById('manual_address');
+            manualAddressInput.classList.add('border-red-600');
+            manualAddressInput.focus();
+        }
+
+        // Initialize form validation and autocomplete
+        function initFormValidation() {
+            initAutocomplete();
+
+            // Add form submission validation for manual entry mode
+            const form = document.querySelector('form');
+            form.addEventListener('submit', function(e) {
+                // Only validate if in manual entry mode
+                if (isManualMode) {
+                    if (!manualPlaceSelected) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showAutocompleteError();
+                        return false;
                     }
-                });
-            }
-        });
+                }
+                return true;
+            });
+        }
+
+        // Initialize when DOM is ready (handle both cases: already loaded or still loading)
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initFormValidation);
+        } else {
+            initFormValidation();
+        }
 
         async function parseGoogleMapsLink(url) {
             try {

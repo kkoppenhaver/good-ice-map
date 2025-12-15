@@ -9,6 +9,7 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @stack('head-scripts')
     </head>
     <body class="font-mono bg-white text-black">
         <div class="min-h-screen">
