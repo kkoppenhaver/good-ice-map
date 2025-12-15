@@ -279,17 +279,17 @@
                     }
                 }
 
-                // Extract coordinates - try multiple patterns
-                // Pattern 1: @LAT,LNG,ZOOM (most common)
-                match = fullUrl.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*),?\d*\.?\d*z?/);
+                // Extract coordinates - prioritize precise place coordinates over viewport
+                // Pattern 1: !3dLAT!4dLNG (MOST ACCURATE - actual place coordinates)
+                match = fullUrl.match(/!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/);
                 if (match) {
                     lat = parseFloat(match[1]);
                     lng = parseFloat(match[2]);
                 }
 
-                // Pattern 2: !3dLAT!4dLNG (data parameter)
+                // Pattern 2: @LAT,LNG,ZOOM (viewport center - fallback)
                 if (!lat) {
-                    match = fullUrl.match(/!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/);
+                    match = fullUrl.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*),?\d*\.?\d*z?/);
                     if (match) {
                         lat = parseFloat(match[1]);
                         lng = parseFloat(match[2]);
