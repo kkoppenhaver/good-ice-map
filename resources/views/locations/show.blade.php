@@ -105,8 +105,13 @@
                         <div class="text-6xl font-bold text-primary-600 mb-2">
                             {{ number_format($location->average_rating, 1) }}
                         </div>
-                        <div class="text-lg">
-                            {{ str_repeat('⭐', round($location->average_rating)) }}
+                        <div class="flex justify-center space-x-1">
+                            @for ($i = 1; $i <= 5; $i++)
+                                <svg viewBox="0 0 24 24" class="w-6 h-6" stroke="black" stroke-width="2" stroke-linejoin="round">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+                                             fill="{{ $i <= round($location->average_rating) ? 'black' : 'white' }}"/>
+                                </svg>
+                            @endfor
                         </div>
                         <p class="mt-2 text-sm">Based on {{ $location->total_ratings }} {{ Str::plural('rating', $location->total_ratings) }}</p>
                     @else
@@ -119,19 +124,22 @@
                 @auth
                     <div class="border-5 border-black shadow-brutal-lg p-6 bg-white">
                         <h2 class="text-xl font-bold uppercase mb-4">Rate This Location</h2>
-                        <form method="POST" action="{{ route('locations.rate', $location) }}" x-data="{ rating: {{ auth()->user()->ratings()->where('location_id', $location->id)->first()?->rating ?? 0 }} }">
+                        <form method="POST" action="{{ route('locations.rate', $location) }}" x-data="{ rating: {{ auth()->user()->ratings()->where('location_id', $location->id)->first()?->rating ?? 0 }}, hoverRating: 0 }">
                             @csrf
 
                             <!-- Star Rating -->
                             <div class="mb-4">
                                 <label class="block font-bold uppercase text-sm mb-2">Your Rating *</label>
-                                <div class="flex space-x-2">
+                                <div class="inline-flex" @mouseleave="hoverRating = 0">
                                     @for ($i = 1; $i <= 5; $i++)
                                         <button type="button"
                                                 @click="rating = {{ $i }}"
-                                                class="text-4xl transition-all"
-                                                :class="rating >= {{ $i }} ? 'text-primary-600' : 'text-gray-300'">
-                                            ⭐
+                                                @mouseenter="hoverRating = {{ $i }}"
+                                                class="w-8 h-8 transition-transform hover:scale-110 cursor-pointer">
+                                            <svg viewBox="0 0 24 24" class="w-full h-full" stroke="black" stroke-width="2" stroke-linejoin="round">
+                                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+                                                         :fill="(hoverRating > 0 ? hoverRating : rating) >= {{ $i }} ? 'black' : 'white'"/>
+                                            </svg>
                                         </button>
                                     @endfor
                                 </div>
@@ -178,14 +186,21 @@
                     <div class="border-5 border-black shadow-brutal-lg p-6 bg-white">
                         <h2 class="text-xl font-bold uppercase mb-4">Reviews</h2>
                         <div class="space-y-4">
-                            @foreach ($location->ratings->where('review', '!=', null) as $rating)
+                            @foreach ($location->ratings->where('review', '!=', null) as $ratingItem)
                                 <div class="border-3 border-black p-4">
                                     <div class="flex justify-between items-start mb-2">
-                                        <span class="font-bold">{{ $rating->user->name }}</span>
-                                        <span class="text-primary-600">{{ str_repeat('⭐', $rating->rating) }}</span>
+                                        <span class="font-bold">{{ $ratingItem->user->name }}</span>
+                                        <div class="flex space-x-0.5">
+                                            @for ($i = 1; $i <= 5; $i++)
+                                                <svg viewBox="0 0 24 24" class="w-4 h-4" stroke="black" stroke-width="2" stroke-linejoin="round">
+                                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+                                                             fill="{{ $i <= $ratingItem->rating ? 'black' : 'white' }}"/>
+                                                </svg>
+                                            @endfor
+                                        </div>
                                     </div>
-                                    <p class="text-sm">{{ $rating->review }}</p>
-                                    <p class="text-xs text-gray-500 mt-2">{{ $rating->created_at->diffForHumans() }}</p>
+                                    <p class="text-sm">{{ $ratingItem->review }}</p>
+                                    <p class="text-xs text-gray-500 mt-2">{{ $ratingItem->created_at->diffForHumans() }}</p>
                                 </div>
                             @endforeach
                         </div>
