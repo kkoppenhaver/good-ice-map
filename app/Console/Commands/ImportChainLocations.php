@@ -12,6 +12,7 @@ class ImportChainLocations extends Command
                             {--chain= : Specific chain to import (e.g., sonic, chick-fil-a)}
                             {--all : Import all known good ice chains}
                             {--state= : Limit to a specific US state (e.g., TX, CA)}
+                            {--city= : Limit to a specific city (e.g., Chicago, Austin)}
                             {--dry-run : Preview without saving}';
 
     protected $description = 'Import chain locations known for good ice using OpenStreetMap (FREE, no API key needed)';
@@ -66,6 +67,7 @@ class ImportChainLocations extends Command
         $chainOption = $this->option('chain');
         $importAll = $this->option('all');
         $state = $this->option('state');
+        $city = $this->option('city');
         $dryRun = $this->option('dry-run');
 
         // Determine which chains to import
@@ -94,11 +96,19 @@ class ImportChainLocations extends Command
             return 1;
         }
 
+        // Build location filter display
+        $locationFilter = 'All US';
+        if ($city) {
+            $locationFilter = $city . ($state ? ", {$state}" : '');
+        } elseif ($state) {
+            $locationFilter = $state;
+        }
+
         $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         $this->info("🧊 Chain Import - OpenStreetMap (FREE)");
         $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         $this->line("   Chains: " . count($chainsToImport));
-        $this->line("   State filter: " . ($state ?: 'All US'));
+        $this->line("   Location filter: " . $locationFilter);
         $this->line("   Data source: OpenStreetMap (free, no API key)");
         $this->newLine();
 
@@ -119,7 +129,7 @@ class ImportChainLocations extends Command
 
             $this->line("   Querying OpenStreetMap...");
 
-            $locations = $osm->findChainLocations($chainInfo['osm_brand'], $state);
+            $locations = $osm->findChainLocations($chainInfo['osm_brand'], $state, $city);
             $found = count($locations);
             $totalFound += $found;
 

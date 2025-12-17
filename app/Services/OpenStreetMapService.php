@@ -29,8 +29,13 @@ class OpenStreetMapService
     /**
      * Search for chain locations across the entire US using OpenStreetMap data.
      * This is FREE and doesn't require any API key.
+     *
+     * @param string $brandName The brand to search for
+     * @param string|null $state State abbreviation (e.g., "IL") or full name
+     * @param string|null $city City name (e.g., "Chicago")
+     * @param int $limit Max results to return
      */
-    public function findChainLocations(string $brandName, ?string $state = null, int $limit = 1000): array
+    public function findChainLocations(string $brandName, ?string $state = null, ?string $city = null, int $limit = 1000): array
     {
         // Convert state abbreviation to full name if needed
         $stateName = $state;
@@ -38,10 +43,15 @@ class OpenStreetMapService
             $stateName = $this->stateNames[strtoupper($state)] ?? $state;
         }
 
-        // Build Overpass QL query
-        $areaFilter = $stateName
-            ? "area[\"name\"=\"{$stateName}\"][\"admin_level\"=\"4\"]->.searchArea;"
-            : 'area["ISO3166-1"="US"]->.searchArea;';
+        // Build Overpass QL query - city takes precedence over state
+        if ($city) {
+            // Search within city boundaries
+            $areaFilter = "area[\"name\"=\"{$city}\"][\"boundary\"=\"administrative\"]->.searchArea;";
+        } elseif ($stateName) {
+            $areaFilter = "area[\"name\"=\"{$stateName}\"][\"admin_level\"=\"4\"]->.searchArea;";
+        } else {
+            $areaFilter = 'area["ISO3166-1"="US"]->.searchArea;';
+        }
 
         $query = <<<OVERPASS
 [out:json][timeout:60];

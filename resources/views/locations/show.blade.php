@@ -83,10 +83,17 @@
                             </div>
                         @endif
 
-                        <div>
-                            <span class="font-bold uppercase text-sm">Submitted by:</span>
-                            <p class="mt-1">{{ $location->submittedBy->name }}</p>
-                        </div>
+                        @if ($location->submittedBy)
+                            <div>
+                                <span class="font-bold uppercase text-sm">Submitted by:</span>
+                                <p class="mt-1">{{ $location->submittedBy->name }}</p>
+                            </div>
+                        @elseif ($location->source === 'scraped')
+                            <div>
+                                <span class="font-bold uppercase text-sm">Source:</span>
+                                <p class="mt-1">Verified chain location</p>
+                            </div>
+                        @endif
 
                         <div>
                             <span class="font-bold uppercase text-sm">Coordinates:</span>
