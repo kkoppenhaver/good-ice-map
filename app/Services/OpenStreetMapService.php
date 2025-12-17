@@ -53,12 +53,16 @@ class OpenStreetMapService
             $areaFilter = 'area["ISO3166-1"="US"]->.searchArea;';
         }
 
+        // Search by brand tag (most reliable for chain stores)
+        // Also search by name for locations without brand tag
         $query = <<<OVERPASS
 [out:json][timeout:60];
 {$areaFilter}
 (
-  node["brand"~"{$brandName}",i]["amenity"](area.searchArea);
-  way["brand"~"{$brandName}",i]["amenity"](area.searchArea);
+  node["brand"~"{$brandName}",i](area.searchArea);
+  way["brand"~"{$brandName}",i](area.searchArea);
+  node["name"~"^{$brandName}",i]["amenity"](area.searchArea);
+  way["name"~"^{$brandName}",i]["amenity"](area.searchArea);
 );
 out center {$limit};
 OVERPASS;
