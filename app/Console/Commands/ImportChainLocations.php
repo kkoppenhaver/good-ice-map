@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Location;
-use App\Services\GooglePlacesScraperService;
+use App\Services\OpenStreetMapService;
 use Illuminate\Console\Command;
 
 class ImportChainLocations extends Command
@@ -11,67 +11,61 @@ class ImportChainLocations extends Command
     protected $signature = 'import:chains
                             {--chain= : Specific chain to import (e.g., sonic, chick-fil-a)}
                             {--all : Import all known good ice chains}
-                            {--cities= : Comma-separated list of cities, or "all" for all cities}
-                            {--limit=50 : Max locations per chain per city}
+                            {--state= : Limit to a specific US state (e.g., TX, CA)}
                             {--dry-run : Preview without saving}';
 
-    protected $description = 'Import chain locations known for good ice (Sonic, Chick-fil-A, etc.)';
+    protected $description = 'Import chain locations known for good ice using OpenStreetMap (FREE, no API key needed)';
 
     // Chains known for having good ice - these get auto-approved with ice_score=10
+    // The 'osm_brand' is the brand name as it appears in OpenStreetMap
     protected array $goodIceChains = [
         'sonic' => [
-            'search_name' => 'Sonic Drive-In',
+            'osm_brand' => 'Sonic',
+            'display_name' => 'Sonic Drive-In',
             'ice_type' => 'nugget',
-            'confidence' => 'high',
         ],
         'chick-fil-a' => [
-            'search_name' => 'Chick-fil-A',
+            'osm_brand' => 'Chick-fil-A',
+            'display_name' => 'Chick-fil-A',
             'ice_type' => 'pebble',
-            'confidence' => 'high',
         ],
         'zaxbys' => [
-            'search_name' => 'Zaxby\'s',
+            'osm_brand' => "Zaxby's",
+            'display_name' => "Zaxby's",
             'ice_type' => 'nugget',
-            'confidence' => 'high',
         ],
         'raising-canes' => [
-            'search_name' => 'Raising Cane\'s',
+            'osm_brand' => "Raising Cane's",
+            'display_name' => "Raising Cane's",
             'ice_type' => 'pebble',
-            'confidence' => 'high',
         ],
         'cookout' => [
-            'search_name' => 'Cook Out',
+            'osm_brand' => 'Cook Out',
+            'display_name' => 'Cook Out',
             'ice_type' => 'nugget',
-            'confidence' => 'high',
         ],
         'quiktrip' => [
-            'search_name' => 'QuikTrip',
+            'osm_brand' => 'QuikTrip',
+            'display_name' => 'QuikTrip',
             'ice_type' => 'nugget',
-            'confidence' => 'high',
         ],
         'buc-ees' => [
-            'search_name' => 'Buc-ee\'s',
+            'osm_brand' => "Buc-ee's",
+            'display_name' => "Buc-ee's",
             'ice_type' => 'nugget',
-            'confidence' => 'high',
         ],
         'dutch-bros' => [
-            'search_name' => 'Dutch Bros Coffee',
+            'osm_brand' => 'Dutch Bros',
+            'display_name' => 'Dutch Bros Coffee',
             'ice_type' => 'nugget',
-            'confidence' => 'medium',
-        ],
-        'jersey-mikes' => [
-            'search_name' => 'Jersey Mike\'s',
-            'ice_type' => 'nugget',
-            'confidence' => 'medium',
         ],
     ];
 
-    public function handle(GooglePlacesScraperService $scraper)
+    public function handle(OpenStreetMapService $osm)
     {
         $chainOption = $this->option('chain');
         $importAll = $this->option('all');
-        $citiesOption = $this->option('cities');
-        $limit = (int) $this->option('limit');
+        $state = $this->option('state');
         $dryRun = $this->option('dry-run');
 
         // Determine which chains to import
@@ -84,9 +78,8 @@ class ImportChainLocations extends Command
                 $this->error("Unknown chain: {$chainOption}");
                 $this->newLine();
                 $this->info("Available chains:");
-                foreach (array_keys($this->goodIceChains) as $key) {
-                    $chain = $this->goodIceChains[$key];
-                    $this->line("  - {$key} ({$chain['search_name']}) - {$chain['ice_type']} ice");
+                foreach ($this->goodIceChains as $key => $chain) {
+                    $this->line("  - {$key} ({$chain['display_name']}) - {$chain['ice_type']} ice");
                 }
                 return 1;
             }
@@ -95,57 +88,23 @@ class ImportChainLocations extends Command
             $this->error("Please specify --chain=<name> or --all");
             $this->newLine();
             $this->info("Available chains:");
-            foreach (array_keys($this->goodIceChains) as $key) {
-                $chain = $this->goodIceChains[$key];
-                $this->line("  - {$key} ({$chain['search_name']}) - {$chain['ice_type']} ice");
+            foreach ($this->goodIceChains as $key => $chain) {
+                $this->line("  - {$key} ({$chain['display_name']}) - {$chain['ice_type']} ice");
             }
             return 1;
         }
 
-        // Determine which cities to search
-        $allCities = config('cities');
-        $citiesToSearch = [];
-
-        if (!$citiesOption || $citiesOption === 'all') {
-            $citiesToSearch = $allCities;
-        } else {
-            $cityNames = array_map('trim', explode(',', $citiesOption));
-            foreach ($cityNames as $cityName) {
-                foreach (array_keys($allCities) as $key) {
-                    if (strcasecmp($key, $cityName) === 0) {
-                        $citiesToSearch[$key] = $allCities[$key];
-                        break;
-                    }
-                }
-            }
-
-            if (empty($citiesToSearch)) {
-                $this->error("No valid cities found in: {$citiesOption}");
-                return 1;
-            }
-        }
-
         $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        $this->info("🧊 Chain Import - Known Good Ice Locations");
+        $this->info("🧊 Chain Import - OpenStreetMap (FREE)");
         $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         $this->line("   Chains: " . count($chainsToImport));
-        $this->line("   Cities: " . count($citiesToSearch));
-        $this->line("   Limit per chain/city: {$limit}");
+        $this->line("   State filter: " . ($state ?: 'All US'));
+        $this->line("   Data source: OpenStreetMap (free, no API key)");
         $this->newLine();
 
         if ($dryRun) {
             $this->warn("⚠️  DRY RUN MODE - No data will be saved");
             $this->newLine();
-        }
-
-        // Estimate API calls
-        $estimatedCalls = count($chainsToImport) * count($citiesToSearch);
-        $this->line("   Estimated API calls: ~{$estimatedCalls}");
-        $this->newLine();
-
-        if (!$dryRun && !$this->confirm("Proceed with import? This will use ~{$estimatedCalls} API searches.", true)) {
-            $this->info('Cancelled.');
-            return 0;
         }
 
         $totalSaved = 0;
@@ -155,100 +114,86 @@ class ImportChainLocations extends Command
         foreach ($chainsToImport as $chainKey => $chainInfo) {
             $this->newLine();
             $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            $this->info("🏪 Importing: {$chainInfo['search_name']} ({$chainInfo['ice_type']} ice)");
+            $this->info("🏪 Importing: {$chainInfo['display_name']} ({$chainInfo['ice_type']} ice)");
             $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+            $this->line("   Querying OpenStreetMap...");
+
+            $locations = $osm->findChainLocations($chainInfo['osm_brand'], $state);
+            $found = count($locations);
+            $totalFound += $found;
+
+            $this->line("   Found {$found} locations");
+
+            if ($found === 0) {
+                continue;
+            }
 
             $chainSaved = 0;
             $chainSkipped = 0;
 
-            foreach ($citiesToSearch as $cityName => $cityData) {
-                $this->line("   📍 Searching {$cityName}, {$cityData['state']}...");
+            foreach ($locations as $loc) {
+                $osmId = $loc['osm_id'];
 
-                $results = $scraper->searchBusinesses(
-                    $chainInfo['search_name'],
-                    $cityData['lat'],
-                    $cityData['lng'],
-                    15000 // 15km radius to cover metro areas
-                );
-
-                $found = count($results);
-                $totalFound += $found;
-
-                if ($found === 0) {
-                    $this->line("      No locations found");
+                // Check for duplicates by OSM ID (stored in place_id field)
+                $existing = Location::where('place_id', $osmId)->first();
+                if ($existing) {
+                    $chainSkipped++;
+                    $totalSkipped++;
                     continue;
                 }
 
-                $this->line("      Found {$found} locations");
+                // Also check by coordinates (within ~100m) to avoid near-duplicates
+                $nearbyExists = Location::where('latitude', '>=', $loc['latitude'] - 0.001)
+                    ->where('latitude', '<=', $loc['latitude'] + 0.001)
+                    ->where('longitude', '>=', $loc['longitude'] - 0.001)
+                    ->where('longitude', '<=', $loc['longitude'] + 0.001)
+                    ->exists();
 
-                $cityCount = 0;
-                foreach ($results as $result) {
-                    if ($cityCount >= $limit) {
-                        break;
+                if ($nearbyExists) {
+                    $chainSkipped++;
+                    $totalSkipped++;
+                    continue;
+                }
+
+                if ($dryRun) {
+                    $addr = $loc['address'] ?: "{$loc['city']}, {$loc['state']}";
+                    $this->line("   ✓ [DRY RUN] {$loc['name']} - {$addr}");
+                    $chainSaved++;
+                    $totalSaved++;
+                    continue;
+                }
+
+                // Save the location
+                try {
+                    $address = $loc['address'];
+                    if (!$address && $loc['city'] && $loc['state']) {
+                        $address = "{$loc['city']}, {$loc['state']}";
                     }
 
-                    // Verify it's actually the chain we're looking for (not a similarly named business)
-                    $resultName = strtolower($result['title'] ?? '');
-                    $searchName = strtolower($chainInfo['search_name']);
+                    $location = Location::create([
+                        'name' => $loc['name'] ?: $chainInfo['display_name'],
+                        'address' => $address,
+                        'latitude' => $loc['latitude'],
+                        'longitude' => $loc['longitude'],
+                        'place_id' => $osmId, // Store OSM ID for deduplication
+                        'source' => 'scraped',
+                        'scraped_at' => now(),
+                        'ice_score' => 10, // Known good ice chain
+                        'business_type' => $chainInfo['display_name'],
+                        'status' => 'approved', // Auto-approve known chains
+                        'submitted_by' => null,
+                        'description' => "Known for {$chainInfo['ice_type']} ice.",
+                    ]);
 
-                    // Check if the result name contains key parts of the chain name
-                    $chainParts = explode(' ', $searchName);
-                    $mainPart = $chainParts[0]; // e.g., "sonic", "chick-fil-a", "zaxby's"
-
-                    if (!str_contains($resultName, $mainPart)) {
-                        continue;
-                    }
-
-                    $placeId = $result['place_id'] ?? null;
-
-                    // Check for duplicates
-                    if ($placeId) {
-                        $existing = Location::where('place_id', $placeId)->first();
-                        if ($existing) {
-                            $chainSkipped++;
-                            $totalSkipped++;
-                            continue;
-                        }
-                    }
-
-                    if ($dryRun) {
-                        $this->line("      ✓ [DRY RUN] Would save: {$result['title']}");
-                        $chainSaved++;
-                        $totalSaved++;
-                        $cityCount++;
-                        continue;
-                    }
-
-                    // Save the location
-                    try {
-                        $location = Location::create([
-                            'name' => $result['title'],
-                            'address' => $result['address'] ?? "{$cityName}, {$cityData['state']}",
-                            'latitude' => $result['gps_coordinates']['latitude'] ?? $cityData['lat'],
-                            'longitude' => $result['gps_coordinates']['longitude'] ?? $cityData['lng'],
-                            'place_id' => $placeId,
-                            'source' => 'scraped',
-                            'scraped_at' => now(),
-                            'ice_score' => 10, // Known good ice chain
-                            'business_type' => $chainInfo['search_name'],
-                            'status' => 'approved', // Auto-approve known chains
-                            'average_rating' => $result['rating'] ?? null,
-                            'submitted_by' => null,
-                            'description' => "Known for {$chainInfo['ice_type']} ice.",
-                        ]);
-
-                        $this->line("      ✅ Saved: {$result['title']} (ID: {$location->id})");
-                        $chainSaved++;
-                        $totalSaved++;
-                        $cityCount++;
-                    } catch (\Exception $e) {
-                        $this->error("      ❌ Failed: " . $e->getMessage());
-                    }
+                    $chainSaved++;
+                    $totalSaved++;
+                } catch (\Exception $e) {
+                    $this->error("   ❌ Failed to save {$loc['name']}: " . $e->getMessage());
                 }
             }
 
-            $this->newLine();
-            $this->line("   Chain summary: {$chainSaved} saved, {$chainSkipped} skipped (duplicates)");
+            $this->line("   ✅ Saved: {$chainSaved}, Skipped: {$chainSkipped} (duplicates)");
         }
 
         $this->newLine();
