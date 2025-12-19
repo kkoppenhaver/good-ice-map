@@ -71,7 +71,8 @@
             color: black !important;
             font-size: 28px !important;
             font-weight: 900 !important;
-            padding: 4px 12px 0 0 !important;
+            top: 8px !important;
+            right: 12px !important;
             transition: color 0.2s !important;
         }
 
