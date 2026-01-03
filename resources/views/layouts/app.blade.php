@@ -19,16 +19,7 @@
     </head>
     <body class="font-mono bg-white text-black">
         <div class="min-h-screen">
-            @include('layouts.navigation')
-
-            <!-- Page Heading -->
-            @isset($header)
-                <header class="bg-white border-b-5 border-black">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        <h1 class="text-2xl font-bold uppercase">{{ $header }}</h1>
-                    </div>
-                </header>
-            @endisset
+            @include('layouts.navigation', ['header' => $header ?? null])
 
             <!-- Page Content -->
             <main>
