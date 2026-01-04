@@ -85,12 +85,8 @@
                 </div>
             @else
                 <div class="bg-white border-5 border-black shadow-brutal-lg p-8 text-center">
-                    <p class="text-xl font-bold uppercase mb-4">No Submissions Yet</p>
-                    <p class="mb-6">You haven't submitted any locations yet. Be the first to share a good ice spot!</p>
-                    <a href="{{ route('locations.create') }}"
-                       class="inline-block px-6 py-3 bg-primary-600 text-white font-bold uppercase border-3 border-black shadow-brutal hover:shadow-brutal-lg hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all">
-                        Submit Your First Location
-                    </a>
+                    <p class="text-xl font-bold uppercase mb-2">No Submissions Yet</p>
+                    <p>You haven't submitted any locations yet. Be the first to share a good ice spot!</p>
                 </div>
             @endif
         </div>
