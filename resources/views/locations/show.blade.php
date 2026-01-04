@@ -99,6 +99,17 @@
                             <span class="font-bold uppercase text-sm">Coordinates:</span>
                             <p class="mt-1">{{ $location->latitude }}, {{ $location->longitude }}</p>
                         </div>
+
+                        @can('delete', $location)
+                            <div class="pt-4 mt-4 border-t-3 border-black">
+                                <button type="button"
+                                        x-data
+                                        x-on:click.prevent="$dispatch('open-modal', 'confirm-location-deletion')"
+                                        class="w-full px-4 py-2 bg-red-600 text-white font-bold uppercase text-sm border-3 border-black shadow-brutal hover:shadow-brutal-sm hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all">
+                                    Delete Location
+                                </button>
+                            </div>
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -216,5 +227,34 @@
             </div>
         </div>
     </div>
+
+    @can('delete', $location)
+        <x-modal name="confirm-location-deletion" maxWidth="md" focusable>
+            <form method="post" action="{{ route('locations.destroy', $location) }}" class="p-6">
+                @csrf
+                @method('delete')
+
+                <h2 class="text-lg font-bold uppercase">
+                    Delete Location
+                </h2>
+
+                <p class="mt-2 text-sm text-gray-600">
+                    Are you sure you want to delete <strong>{{ $location->name }}</strong>? This action cannot be undone.
+                </p>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button"
+                            x-on:click="$dispatch('close')"
+                            class="px-4 py-2 bg-white font-bold uppercase text-sm border-3 border-black shadow-brutal hover:shadow-brutal-sm transition-all">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-4 py-2 bg-red-600 text-white font-bold uppercase text-sm border-3 border-black shadow-brutal hover:shadow-brutal-sm transition-all">
+                        Delete Location
+                    </button>
+                </div>
+            </form>
+        </x-modal>
+    @endcan
 </body>
 </html>

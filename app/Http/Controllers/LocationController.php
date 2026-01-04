@@ -342,8 +342,19 @@ class LocationController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Location $location)
     {
-        //
+        $this->authorize('delete', $location);
+
+        // Delete images from R2 storage
+        foreach ($location->images as $image) {
+            Storage::disk('r2')->delete($image->image_path);
+            $image->delete();
+        }
+
+        $location->delete();
+
+        return redirect()->route('dashboard')
+            ->with('success', 'Location deleted successfully.');
     }
 }

@@ -19,7 +19,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Location routes
-Route::resource('locations', LocationController::class)->except(['index', 'edit', 'update', 'destroy']);
+Route::resource('locations', LocationController::class)->except(['index', 'edit', 'update']);
 
 // Rating routes
 Route::post('/locations/{location}/rate', [RatingController::class, 'store'])->name('locations.rate');
