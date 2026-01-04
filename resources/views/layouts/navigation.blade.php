@@ -5,14 +5,15 @@
             <div class="flex items-center">
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
-                    <a href="{{ route('home') }}" class="flex items-center">
-                        <img src="/favicon-32x32.png" alt="Good Ice Map" class="block h-8 w-8">
+                    <a href="{{ route('home') }}" class="flex items-center text-2xl font-bold uppercase tracking-wider hover:text-primary-600">
+                        <img src="/logo.png" alt="Good Ice Map" class="block h-12 w-auto me-3">
+                        Good Ice Map
                     </a>
                 </div>
 
                 <!-- Page Title -->
                 @isset($header)
-                    <h1 class="ms-6 text-xl font-bold uppercase">{{ $header }}</h1>
+                    <h1 class="ms-6 ps-6 border-l-3 border-black text-xl font-bold uppercase">{{ $header }}</h1>
                 @endisset
             </div>
 

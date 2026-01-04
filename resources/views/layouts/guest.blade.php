@@ -18,7 +18,8 @@
                         {{ $title }}
                     </h1>
                 @else
-                    <a href="/" class="text-4xl font-black uppercase tracking-wider hover:text-primary-600 transition-colors">
+                    <a href="/" class="flex items-center text-4xl font-black uppercase tracking-wider hover:text-primary-600 transition-colors">
+                        <img src="/logo.png" alt="Good Ice Map" class="block h-12 w-auto me-4">
                         Good Ice Map
                     </a>
                 @endif

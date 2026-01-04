@@ -13,7 +13,8 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <a href="{{ route('home') }}" class="text-2xl font-bold uppercase tracking-wider hover:text-primary-600">
+                    <a href="{{ route('home') }}" class="flex items-center text-2xl font-bold uppercase tracking-wider hover:text-primary-600">
+                        <img src="/logo.png" alt="Good Ice Map" class="block h-12 w-auto me-3">
                         Good Ice Map
                     </a>
                 </div>
