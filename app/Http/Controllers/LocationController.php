@@ -299,7 +299,7 @@ class LocationController extends Controller
 
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $index => $image) {
-                $path = $image->store('location-images', 'public');
+                $path = $image->store('location-images', 'r2');
 
                 LocationImage::create([
                     'location_id' => $location->id,

@@ -17,7 +17,7 @@
                     @foreach ($locations as $location)
                         <div class="bg-white border-5 border-black shadow-brutal-lg overflow-hidden">
                             @if ($location->images->count() > 0)
-                                <img src="{{ asset('storage/' . $location->images->first()->image_path) }}"
+                                <img src="{{ $location->images->first()->url }}"
                                      alt="{{ $location->name }}"
                                      class="w-full h-48 object-cover border-b-5 border-black">
                             @endif
