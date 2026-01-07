@@ -123,32 +123,33 @@
 </head>
 <body class="font-mono bg-white text-black">
     <nav class="bg-white border-b-5 border-black">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <a href="{{ route('home') }}" class="flex items-center text-2xl font-bold uppercase tracking-wider hover:text-primary-600">
-                        <img src="/logo.png" alt="Good Ice Map" class="block h-12 w-auto me-3">
-                        Good Ice Map
+        <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center shrink-0">
+                    <a href="{{ route('home') }}" class="flex items-center text-lg sm:text-2xl font-bold uppercase tracking-wider hover:text-primary-600">
+                        <img src="/logo.png" alt="Good Ice Map" class="block h-10 sm:h-12 w-auto me-2 sm:me-3">
+                        <span class="hidden sm:block">Good Ice Map</span>
                     </a>
                 </div>
 
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2 sm:space-x-4">
                     @auth
                         <a href="{{ route('locations.create') }}"
-                           class="px-6 py-2 bg-primary-600 text-white font-bold uppercase border-3 border-black shadow-brutal hover:shadow-brutal-lg hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all">
-                            Submit Location
+                           class="px-3 sm:px-6 py-2 bg-primary-600 text-white text-xs sm:text-base font-bold uppercase border-3 border-black shadow-brutal hover:shadow-brutal-lg hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all whitespace-nowrap">
+                            <span class="hidden sm:block">Submit Location</span>
+                            <span class="block sm:hidden">Submit</span>
                         </a>
                         <a href="{{ route('dashboard') }}"
-                           class="px-4 py-2 bg-white font-bold uppercase border-3 border-black shadow-brutal hover:shadow-brutal-lg hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all">
+                           class="px-3 sm:px-4 py-2 bg-white text-xs sm:text-base font-bold uppercase border-3 border-black shadow-brutal hover:shadow-brutal-lg hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all whitespace-nowrap">
                             Dashboard
                         </a>
                     @else
                         <a href="{{ route('login') }}"
-                           class="px-4 py-2 font-bold uppercase hover:text-primary-600">
+                           class="px-3 sm:px-4 py-2 text-xs sm:text-base font-bold uppercase hover:text-primary-600">
                             Login
                         </a>
                         <a href="{{ route('register') }}"
-                           class="px-6 py-2 bg-primary-600 text-white font-bold uppercase border-3 border-black shadow-brutal hover:shadow-brutal-lg hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all">
+                           class="px-3 sm:px-6 py-2 bg-primary-600 text-white text-xs sm:text-base font-bold uppercase border-3 border-black shadow-brutal hover:shadow-brutal-lg hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all whitespace-nowrap">
                             Register
                         </a>
                     @endauth
