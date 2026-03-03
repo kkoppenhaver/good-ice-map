@@ -206,23 +206,6 @@
             popupAnchor: [0, -50]
         });
 
-        // Add test marker
-        const testMarker = L.marker([41.957631, -87.654463], {
-            icon: customIcon
-        }).addTo(map);
-
-        testMarker.bindPopup(`
-            <div style="font-family: ui-monospace, monospace;">
-                <h3 style="font-weight: 900; font-size: 18px; text-transform: uppercase; margin-bottom: 8px;">Test Location</h3>
-                <p style="font-size: 14px; margin-bottom: 8px;">1234 Test Street, Chicago, IL</p>
-                <p style="font-size: 14px; margin-bottom: 12px;">⭐ 4.5 (12)</p>
-                <a href="#"
-                   style="display: inline-block; padding: 8px 16px; background: #9333ea; color: white; font-weight: 900; text-transform: uppercase; font-size: 14px; border: 2px solid black; text-decoration: none;">
-                    View Details
-                </a>
-            </div>
-        `);
-
         // Fetch and display locations
         fetch('{{ route('api.locations') }}')
             .then(response => response.json())
