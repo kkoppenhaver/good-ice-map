@@ -162,8 +162,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Center on test marker location with higher zoom
-        const map = L.map('map').setView([41.957631, -87.654463], 14);
+        const map = L.map('map').setView([39.8283, -98.5795], 5);
 
         // Stamen Toner tiles for brutalist black and white aesthetic
         L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}{r}.png', {
