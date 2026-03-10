@@ -1,0 +1,158 @@
+name: Claude Jira - Implement
+
+on:
+  repository_dispatch:
+    types: [claude-implement]
+
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Transition ticket to In Progress
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
+        run: |
+          TRANSITIONS=$(curl -s \
+            "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/transitions" \
+            -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}")
+
+          TRANSITION_ID=$(echo "$TRANSITIONS" | jq -r '.transitions[] | select(.name == "In Progress") | .id')
+
+          if [ -n "$TRANSITION_ID" ] && [ "$TRANSITION_ID" != "null" ]; then
+            curl -s -X POST \
+              "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/transitions" \
+              -H "Content-Type: application/json" \
+              -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
+              -d "{\"transition\": {\"id\": \"${TRANSITION_ID}\"}}"
+            echo "Transitioned ticket to In Progress"
+          else
+            echo "Warning: Could not find 'In Progress' transition. Available transitions:"
+            echo "$TRANSITIONS" | jq '.transitions[].name'
+          fi
+
+      - name: Fetch plan from Jira
+        id: fetch-plan
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
+        run: |
+          COMMENTS=$(curl -s \
+            "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/comment?orderBy=-created&maxResults=10" \
+            -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}")
+
+          PLAN=$(echo "$COMMENTS" | jq -r '[.comments[] | select(.body.content[0].content[0].text | test("Claude.*Implementation Plan"; "i"))][0].body.content[0].content[0].text // "No plan found"')
+
+          echo "plan<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$PLAN" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Run Claude Code - Implement
+        id: claude-implement
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are implementing a Jira ticket. Create a branch, write the code, and open a pull request.
+
+            ## Jira Ticket: ${{ github.event.client_payload.issue_key }}
+
+            **Summary:** ${{ github.event.client_payload.summary }}
+
+            **Description:**
+            ${{ github.event.client_payload.description }}
+
+            **Approved Implementation Plan:**
+            ${{ steps.fetch-plan.outputs.plan }}
+
+            ---
+
+            Instructions:
+            1. Create a branch named `${{ github.event.client_payload.issue_key }}` (lowercase, e.g., `scrum-123`)
+            2. Implement the changes following the approved plan above
+            3. Write tests as specified in the plan
+            4. Run the test suite to verify nothing is broken
+            5. Open a pull request with:
+               - Title: `${{ github.event.client_payload.issue_key }}: ${{ github.event.client_payload.summary }}`
+               - Body that references the Jira ticket and summarizes changes
+            6. Output the PR URL as the last line of your response
+
+          claude_args: '--allowed-tools "Read,Glob,Grep,Edit,Write,Bash"'
+
+      - name: Post PR link to Jira
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
+          CLAUDE_RESPONSE: ${{ steps.claude-implement.outputs.response }}
+        run: |
+          PR_URL=$(echo "$CLAUDE_RESPONSE" | grep -oP 'https://github.com/[^\s]+/pull/\d+' | tail -1)
+
+          if [ -z "$PR_URL" ]; then
+            echo "Warning: Could not extract PR URL from Claude's response"
+            PR_URL="(PR URL not detected - check GitHub for the latest PR)"
+          fi
+
+          curl -s -X POST \
+            "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/comment" \
+            -H "Content-Type: application/json" \
+            -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
+            -d "$(jq -n --arg body "**Claude has opened a PR:** ${PR_URL}
+
+          The implementation is ready for review. Claude will respond to PR review comments and push fixes." \
+              '{body: {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: $body}]}]}}')"
+
+      - name: Transition ticket to Ready for Review
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
+        run: |
+          TRANSITIONS=$(curl -s \
+            "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/transitions" \
+            -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}")
+
+          TRANSITION_ID=$(echo "$TRANSITIONS" | jq -r '.transitions[] | select(.name == "Ready for Review") | .id')
+
+          if [ -n "$TRANSITION_ID" ] && [ "$TRANSITION_ID" != "null" ]; then
+            curl -s -X POST \
+              "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/transitions" \
+              -H "Content-Type: application/json" \
+              -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
+              -d "{\"transition\": {\"id\": \"${TRANSITION_ID}\"}}"
+            echo "Transitioned ticket to Ready for Review"
+          else
+            echo "Warning: Could not find 'Ready for Review' transition. Available transitions:"
+            echo "$TRANSITIONS" | jq '.transitions[].name'
+          fi
+
+      - name: Reassign ticket to previous assignee
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
+          PREVIOUS_ASSIGNEE: ${{ github.event.client_payload.previous_assignee_id }}
+        run: |
+          curl -s -X PUT \
+            "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/assignee" \
+            -H "Content-Type: application/json" \
+            -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
+            -d "{\"accountId\": \"${PREVIOUS_ASSIGNEE}\"}"
+          echo "Reassigned ticket to previous assignee"

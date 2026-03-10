@@ -1,0 +1,112 @@
+name: Claude Jira - Plan
+
+on:
+  repository_dispatch:
+    types: [claude-plan]
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code - Generate Plan
+        id: claude-plan
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are analyzing a Jira ticket to create an implementation plan. Do NOT write any code yet.
+
+            ## Jira Ticket: ${{ github.event.client_payload.issue_key }}
+
+            **Summary:** ${{ github.event.client_payload.summary }}
+
+            **Description:**
+            ${{ github.event.client_payload.description }}
+
+            **Additional Instructions:**
+            ${{ github.event.client_payload.comment }}
+
+            ---
+
+            Please analyze this ticket and the codebase, then output a structured implementation plan in markdown with:
+
+            1. **Understanding** - Restate the goal in your own words
+            2. **Approach** - High-level strategy
+            3. **Files to Change** - List specific files you'll create or modify
+            4. **Implementation Steps** - Numbered steps with details
+            5. **Testing Plan** - How you'll verify the changes work
+            6. **Risks & Questions** - Anything unclear or risky that the team should weigh in on
+
+            Be specific to this codebase. Reference actual files, classes, and patterns you find.
+
+          claude_args: '--allowed-tools "Read,Glob,Grep,Bash(find:*),Bash(ls:*)"'
+
+      - name: Transition ticket to Planning
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
+        run: |
+          TRANSITIONS=$(curl -s \
+            "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/transitions" \
+            -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}")
+
+          TRANSITION_ID=$(echo "$TRANSITIONS" | jq -r '.transitions[] | select(.name == "Planning") | .id')
+
+          if [ -n "$TRANSITION_ID" ] && [ "$TRANSITION_ID" != "null" ]; then
+            curl -s -X POST \
+              "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/transitions" \
+              -H "Content-Type: application/json" \
+              -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
+              -d "{\"transition\": {\"id\": \"${TRANSITION_ID}\"}}"
+            echo "Transitioned ticket to Planning"
+          else
+            echo "Warning: Could not find 'Planning' transition. Available transitions:"
+            echo "$TRANSITIONS" | jq '.transitions[].name'
+          fi
+
+      - name: Post plan to Jira
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
+          PLAN: ${{ steps.claude-plan.outputs.response }}
+        run: |
+          curl -s -X POST \
+            "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/comment" \
+            -H "Content-Type: application/json" \
+            -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
+            -d "$(jq -n --arg body "**Claude's Implementation Plan**
+
+          ${PLAN}
+
+          ---
+          _To approve this plan, reassign this ticket to Claude._" \
+              '{body: {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: $body}]}]}}')"
+
+      - name: Reassign ticket to previous assignee
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
+          PREVIOUS_ASSIGNEE: ${{ github.event.client_payload.previous_assignee_id }}
+        run: |
+          curl -s -X PUT \
+            "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/assignee" \
+            -H "Content-Type: application/json" \
+            -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
+            -d "{\"accountId\": \"${PREVIOUS_ASSIGNEE}\"}"
+          echo "Reassigned ticket to previous assignee"
