@@ -18,31 +18,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Transition ticket to In Progress
-        env:
-          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
-          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
-          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-          ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
-        run: |
-          TRANSITIONS=$(curl -s \
-            "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/transitions" \
-            -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}")
-
-          TRANSITION_ID=$(echo "$TRANSITIONS" | jq -r '.transitions[] | select(.name == "In Progress") | .id')
-
-          if [ -n "$TRANSITION_ID" ] && [ "$TRANSITION_ID" != "null" ]; then
-            curl -s -X POST \
-              "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/transitions" \
-              -H "Content-Type: application/json" \
-              -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
-              -d "{\"transition\": {\"id\": \"${TRANSITION_ID}\"}}"
-            echo "Transitioned ticket to In Progress"
-          else
-            echo "Warning: Could not find 'In Progress' transition. Available transitions:"
-            echo "$TRANSITIONS" | jq '.transitions[].name'
-          fi
-
       - name: Fetch plan from Jira
         id: fetch-plan
         env:

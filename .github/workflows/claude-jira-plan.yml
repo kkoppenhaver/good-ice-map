@@ -31,7 +31,7 @@ jobs:
             **Summary:** ${{ github.event.client_payload.summary }}
 
             **Description:**
-            ${{ github.event.client_payload.description }}
+            ${{ github.event.client_payload.description || 'No description provided. Use the summary above and your analysis of the codebase to determine what needs to be done.' }}
 
             **Additional Instructions:**
             ${{ github.event.client_payload.comment }}
