@@ -136,6 +136,18 @@ You need **one rule** with branching logic:
  Human reviews PR on GitHub
    ├── Claude responds to review comments (claude.yml)
    └── Human approves and merges PR
+
+ --- OR skip planning ---
+
+ Human moves ticket to "Ready for Dev" and assigns Claude
+         │
+         ▼
+ claude-jira-implement.yml
+   ├── Claude analyzes the ticket directly (no plan needed)
+   ├── Creates branch, writes code, opens PR
+   ├── Posts PR link to Jira
+   ├── Moves ticket to "Ready for Review"
+   └── Unassigns ticket
 ```
 
 ## 6. Test the Integration

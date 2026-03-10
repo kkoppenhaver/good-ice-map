@@ -51,15 +51,15 @@ jobs:
             **Description:**
             ${{ github.event.client_payload.description }}
 
-            **Approved Implementation Plan:**
+            **Implementation Plan:**
             ${{ steps.fetch-plan.outputs.plan }}
 
             ---
 
             Instructions:
             1. Create a branch named `${{ github.event.client_payload.issue_key }}` (lowercase, e.g., `scrum-123`)
-            2. Implement the changes following the approved plan above
-            3. Write tests as specified in the plan
+            2. If an implementation plan is provided above, follow it. If the plan says "No plan found", analyze the ticket summary and description yourself to determine the best approach.
+            3. Implement the changes
             4. Run the test suite to verify nothing is broken
             5. Open a pull request with:
                - Title: `${{ github.event.client_payload.issue_key }}: ${{ github.event.client_payload.summary }}`
