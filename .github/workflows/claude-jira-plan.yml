@@ -51,7 +51,7 @@ jobs:
 
           claude_args: '--allowed-tools "Read,Glob,Grep,Bash(find:*),Bash(ls:*)"'
 
-      - name: Transition ticket to Planning
+      - name: Transition ticket to Ready for Dev
         env:
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
@@ -62,7 +62,7 @@ jobs:
             "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/transitions" \
             -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}")
 
-          TRANSITION_ID=$(echo "$TRANSITIONS" | jq -r '.transitions[] | select(.name == "Planning") | .id')
+          TRANSITION_ID=$(echo "$TRANSITIONS" | jq -r '.transitions[] | select(.name == "Ready for Dev") | .id')
 
           if [ -n "$TRANSITION_ID" ] && [ "$TRANSITION_ID" != "null" ]; then
             curl -s -X POST \
@@ -70,9 +70,9 @@ jobs:
               -H "Content-Type: application/json" \
               -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
               -d "{\"transition\": {\"id\": \"${TRANSITION_ID}\"}}"
-            echo "Transitioned ticket to Planning"
+            echo "Transitioned ticket to Ready for Dev"
           else
-            echo "Warning: Could not find 'Planning' transition. Available transitions:"
+            echo "Warning: Could not find 'Ready for Dev' transition. Available transitions:"
             echo "$TRANSITIONS" | jq '.transitions[].name'
           fi
 
@@ -93,20 +93,19 @@ jobs:
           ${PLAN}
 
           ---
-          _To approve this plan, reassign this ticket to Claude._" \
+          _To approve and start implementation, assign this ticket to Claude. To request a revised plan, move back to Planning and assign to Claude with a comment._" \
               '{body: {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: $body}]}]}}')"
 
-      - name: Reassign ticket to previous assignee
+      - name: Unassign ticket
         env:
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
-          PREVIOUS_ASSIGNEE: ${{ github.event.client_payload.previous_assignee_id }}
         run: |
           curl -s -X PUT \
             "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/assignee" \
             -H "Content-Type: application/json" \
             -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
-            -d "{\"accountId\": \"${PREVIOUS_ASSIGNEE}\"}"
-          echo "Reassigned ticket to previous assignee"
+            -d '{"accountId": null}'
+          echo "Unassigned ticket"

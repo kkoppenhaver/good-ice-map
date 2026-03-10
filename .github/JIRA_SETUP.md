@@ -42,9 +42,10 @@ Your board should have these columns (in order):
 
 1. **Backlog** — Unstarted work
 2. **Planning** — Claude is analyzing the ticket and writing a plan
-3. **In Progress** — Claude is implementing the changes
-4. **Ready for Review** — PR is open, ready for human review
-5. **Approved for Deploy** — Human has approved and merged
+3. **Ready for Dev** — Plan is ready, waiting for human approval to implement
+4. **In Progress** — Claude is implementing the changes
+5. **Ready for Review** — PR is open, ready for human review
+6. **Approved for Deploy** — Human has approved and merged
 
 ## 4. Create Jira Automation Rule
 
@@ -78,13 +79,12 @@ You need **one rule** with branching logic:
       "issue_key": "{{issue.key}}",
       "summary": "{{issue.summary}}",
       "description": "{{issue.description}}",
-      "comment": "",
-      "previous_assignee_id": "{{issue.previousAssignee.accountId}}"
+      "comment": ""
     }
   }
   ```
 
-#### Else if status is "Planning":
+#### Else if status is "Ready for Dev":
 
 **Action:** Send web request
 - **URL:** `https://api.github.com/repos/kkoppenhaver/good-ice-map/dispatches`
@@ -101,13 +101,10 @@ You need **one rule** with branching logic:
     "client_payload": {
       "issue_key": "{{issue.key}}",
       "summary": "{{issue.summary}}",
-      "description": "{{issue.description}}",
-      "previous_assignee_id": "{{issue.previousAssignee.accountId}}"
+      "description": "{{issue.description}}"
     }
   }
   ```
-
-> **Note:** The `{{issue.previousAssignee.accountId}}` smart value captures who had the ticket before Claude, so Claude can reassign it back after finishing.
 
 ## 5. The Complete Workflow
 
@@ -118,11 +115,13 @@ You need **one rule** with branching logic:
  claude-jira-plan.yml
    ├── Claude analyzes codebase
    ├── Posts implementation plan to Jira
-   ├── Moves ticket to "Planning"
-   └── Reassigns ticket to previous assignee
+   ├── Moves ticket to "Ready for Dev"
+   └── Unassigns ticket
          │
          ▼
- Human reviews plan, reassigns to Claude (Planning)
+ Human reviews plan in "Ready for Dev"
+   ├── To revise: move back to Planning, assign to Claude
+   └── To approve: assign to Claude (in Ready for Dev)
          │
          ▼
  claude-jira-implement.yml
@@ -131,7 +130,7 @@ You need **one rule** with branching logic:
    ├── Claude creates branch, writes code, opens PR
    ├── Posts PR link to Jira
    ├── Moves ticket to "Ready for Review"
-   └── Reassigns ticket to previous assignee
+   └── Unassigns ticket
          │
          ▼
  Human reviews PR on GitHub
@@ -146,16 +145,16 @@ You need **one rule** with branching logic:
 3. Watch for:
    - GitHub Actions → "Claude Jira - Plan" workflow runs
    - Claude posts a plan as a Jira comment
-   - Ticket moves to "Planning"
-   - Ticket is reassigned back to you
-4. Review the plan, then reassign to Claude
+   - Ticket moves to "Ready for Dev"
+   - Ticket is unassigned
+4. Review the plan, then assign to Claude
 5. Watch for:
    - GitHub Actions → "Claude Jira - Implement" workflow runs
    - Ticket moves to "In Progress"
    - Claude opens a PR in GitHub
    - Claude posts the PR link to Jira
    - Ticket moves to "Ready for Review"
-   - Ticket is reassigned back to you
+   - Ticket is unassigned
 6. Review the PR on GitHub, leave comments if needed
 7. Approve and merge when ready
 

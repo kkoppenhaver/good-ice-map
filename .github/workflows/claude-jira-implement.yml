@@ -142,17 +142,16 @@ jobs:
             echo "$TRANSITIONS" | jq '.transitions[].name'
           fi
 
-      - name: Reassign ticket to previous assignee
+      - name: Unassign ticket
         env:
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
-          PREVIOUS_ASSIGNEE: ${{ github.event.client_payload.previous_assignee_id }}
         run: |
           curl -s -X PUT \
             "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/assignee" \
             -H "Content-Type: application/json" \
             -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
-            -d "{\"accountId\": \"${PREVIOUS_ASSIGNEE}\"}"
-          echo "Reassigned ticket to previous assignee"
+            -d '{"accountId": null}'
+          echo "Unassigned ticket"
