@@ -3,14 +3,10 @@
 ## TODO
 
 ### 1. Immediate acknowledgement on ticket assignment
-**Status:** In progress
-When Claude is assigned a ticket, the Jira automation should immediately transition the ticket:
+**Status:** Done
+Jira automation now transitions tickets immediately when Claude is assigned:
 - Backlog → Planning (before firing `claude-plan` webhook)
 - Ready for Dev → In Progress (before firing `claude-implement` webhook)
-
-This gives instant visual feedback that Claude picked up the work. The GitHub workflow already handles the "done" transitions (Planning → Ready for Dev, In Progress → Ready for Review).
-
-**Action needed:** Add "Transition issue" steps in the Jira automation rule, before each "Send web request" action.
 
 ### 2. Empty plan output from Claude Code action
 **Status:** Fixed — needs retest
@@ -33,6 +29,22 @@ Implementation approach:
 - Post questions as a distinct Jira comment (e.g. with a `**Questions**` header)
 - Update `claude-jira-implement.yml`'s "Fetch plan from Jira" step to also grab Q&A comments and pass them to the implement prompt
 - The implement prompt should reference the answers when coding
+
+### 4. Speed up the planning GitHub Actions run
+**Status:** Not started
+The planning workflow feels slow. Possible optimizations to investigate:
+- Bun install step takes ~700ms but the action downloads it fresh each time — check if caching helps
+- The checkout uses `fetch-depth: 1` which is good, but could a sparse checkout reduce time further?
+- Claude Code SDK setup/initialization overhead — is there a way to warm this up or use a pre-built image?
+- Could we use a smaller/faster model for planning since it's read-only analysis (no code writing)?
+- Look into whether `anthropics/claude-code-action` supports any performance-related options
+
+### 5. Skip planning — go straight to implementation
+**Status:** Not tested
+Should be able to manually move a ticket to "Ready for Dev" and assign Claude to skip planning entirely. The automation should fire `claude-implement` since it only checks status + assignee. The implement workflow fetches the plan from Jira comments — if none exists, it falls back to "No plan found" and works from the summary/description.
+
+**To test:** Move a Backlog ticket directly to Ready for Dev, assign Claude, verify it implements without a plan comment.
+**To consider:** Should the implement prompt handle the no-plan case more gracefully? Currently it just passes "No plan found" as the plan text.
 
 ## DONE
 
