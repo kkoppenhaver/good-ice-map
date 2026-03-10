@@ -91,10 +91,12 @@ jobs:
           ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
           PR_URL: ${{ steps.extract-pr.outputs.pr_url }}
         run: |
-          jq -n --arg body "$(printf '**Claude has opened a PR:** %s\n\nThe implementation is ready for review. Claude will respond to PR review comments and push fixes.' "$PR_URL")" \
-            '{body: {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: $body}]}]}}' | \
+          jq -n --arg body "*Claude has opened a PR:* ${PR_URL}
+
+          The implementation is ready for review. Claude will respond to PR review comments and push fixes." \
+            '{body: $body}' | \
           curl -s -X POST \
-            "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/comment" \
+            "${JIRA_BASE_URL}/rest/api/2/issue/${ISSUE_KEY}/comment" \
             -H "Content-Type: application/json" \
             -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
             -d @-

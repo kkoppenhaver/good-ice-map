@@ -38,16 +38,21 @@ jobs:
 
             ---
 
-            Please analyze this ticket and the codebase, then output a structured implementation plan in markdown with:
+            Please analyze this ticket and the codebase, then create an implementation plan. Scale the plan's detail to match the ticket's complexity:
 
-            1. **Understanding** - Restate the goal in your own words
-            2. **Approach** - High-level strategy
-            3. **Files to Change** - List specific files you'll create or modify
-            4. **Implementation Steps** - Numbered steps with details
-            5. **Testing Plan** - How you'll verify the changes work
-            6. **Risks & Questions** - Anything unclear or risky that the team should weigh in on
+            - For simple changes (typos, config tweaks, small bug fixes): a brief summary of what you'll change and which files are involved is sufficient.
+            - For moderate changes: include your understanding, the files to change, and implementation steps.
+            - For complex changes (new features, architectural work, multi-file refactors): include all of the following:
+              1. Understanding — restate the goal in your own words
+              2. Approach — high-level strategy
+              3. Files to Change — specific files you'll create or modify
+              4. Implementation Steps — numbered steps with details
+              5. Testing Plan — how you'll verify the changes work
+              6. Risks & Questions — anything unclear or risky
 
             Be specific to this codebase. Reference actual files, classes, and patterns you find.
+
+            IMPORTANT: No preamble, no title, no introduction. Start directly with the plan content. This will be posted directly to the Jira ticket.
 
           claude_args: '--allowed-tools "Read,Glob,Grep,Bash(find:*),Bash(ls:*)"'
 
@@ -94,10 +99,14 @@ jobs:
           ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
           PLAN: ${{ steps.extract-plan.outputs.plan }}
         run: |
-          jq -n --arg body "$(printf '**Claude'\''s Implementation Plan**\n\n%s\n\n---\n_To approve and start implementation, assign this ticket to Claude. To request a revised plan, move back to Planning and assign to Claude with a comment._' "$PLAN")" \
-            '{body: {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: $body}]}]}}' | \
+          COMMENT_BODY="${PLAN}
+
+          ----
+          _To approve and start implementation, assign this ticket to Claude. To request a revised plan, move back to Planning and assign to Claude with a comment._"
+
+          jq -n --arg body "$COMMENT_BODY" '{body: $body}' | \
           curl -s -X POST \
-            "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/comment" \
+            "${JIRA_BASE_URL}/rest/api/2/issue/${ISSUE_KEY}/comment" \
             -H "Content-Type: application/json" \
             -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
             -d @-
