@@ -76,25 +76,31 @@ jobs:
             echo "$TRANSITIONS" | jq '.transitions[].name'
           fi
 
+      - name: Extract plan from execution output
+        id: extract-plan
+        env:
+          EXECUTION_FILE: ${{ steps.claude-plan.outputs.execution_file }}
+        run: |
+          PLAN=$(jq -r '[.[] | select(.type == "result") | .result // empty] | last // "No plan generated"' "$EXECUTION_FILE")
+          echo "plan<<PLAN_EOF" >> "$GITHUB_OUTPUT"
+          echo "$PLAN" >> "$GITHUB_OUTPUT"
+          echo "PLAN_EOF" >> "$GITHUB_OUTPUT"
+
       - name: Post plan to Jira
         env:
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
-          PLAN: ${{ steps.claude-plan.outputs.response }}
+          PLAN: ${{ steps.extract-plan.outputs.plan }}
         run: |
+          jq -n --arg body "$(printf '**Claude'\''s Implementation Plan**\n\n%s\n\n---\n_To approve and start implementation, assign this ticket to Claude. To request a revised plan, move back to Planning and assign to Claude with a comment._' "$PLAN")" \
+            '{body: {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: $body}]}]}}' | \
           curl -s -X POST \
             "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/comment" \
             -H "Content-Type: application/json" \
             -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
-            -d "$(jq -n --arg body "**Claude's Implementation Plan**
-
-          ${PLAN}
-
-          ---
-          _To approve and start implementation, assign this ticket to Claude. To request a revised plan, move back to Planning and assign to Claude with a comment._" \
-              '{body: {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: $body}]}]}}')"
+            -d @-
 
       - name: Unassign ticket
         env:

@@ -13,18 +13,26 @@ This gives instant visual feedback that Claude picked up the work. The GitHub wo
 **Action needed:** Add "Transition issue" steps in the Jira automation rule, before each "Send web request" action.
 
 ### 2. Empty plan output from Claude Code action
-**Status:** In progress
-First test run (SCRUM-1) posted a comment but the plan body was empty — just the header `**Claude's Implementation Plan**` and footer text, no actual plan content.
+**Status:** Fixed — needs retest
+**Root cause:** `claude-code-action` does not have an `outputs.response` field. The available outputs are `execution_file`, `branch_name`, `session_id`, `structured_output`, and `github_token`. The plan workflow was referencing `steps.claude-plan.outputs.response` which doesn't exist.
 
-Possible causes to investigate:
-- The `claude-code-action` output key may not be `response` — check the action's docs for the correct output name
-- Check the GitHub Actions run logs for the "Run Claude Code - Generate Plan" step to see if Claude produced output
-- SCRUM-1 had no description (all info was in the title)
+**Fix applied:**
+- Added an "Extract plan from execution output" step that reads the result from the `execution_file` JSON
+- Fixed the same issue in `claude-jira-implement.yml` for extracting the PR URL
+- Added fallback text for empty ticket descriptions
+- Also improved the curl/jq pattern to pipe JSON body via `@-` instead of inline shell expansion (avoids quoting issues with markdown)
 
-Changes made:
-- Added fallback text for empty descriptions in the plan prompt so Claude knows to work from the summary
+**Action needed:** Commit, push, and retest with a ticket.
 
-**Action needed:** Check the Actions run log, verify the correct output key from `claude-code-action`, and retest.
+### 3. Claude asks clarifying questions during planning
+**Status:** Not started
+During the planning phase, Claude should identify any ambiguities or open questions and post them as a comment on the Jira ticket. The human answers in the ticket comments. When the implement workflow runs, it should fetch both the plan and the Q&A thread so Claude has full context.
+
+Implementation approach:
+- Update the plan prompt to instruct Claude to list questions separately from the plan
+- Post questions as a distinct Jira comment (e.g. with a `**Questions**` header)
+- Update `claude-jira-implement.yml`'s "Fetch plan from Jira" step to also grab Q&A comments and pass them to the implement prompt
+- The implement prompt should reference the answers when coding
 
 ## DONE
 

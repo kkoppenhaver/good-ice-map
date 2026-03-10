@@ -68,29 +68,36 @@ jobs:
 
           claude_args: '--allowed-tools "Read,Glob,Grep,Edit,Write,Bash"'
 
-      - name: Post PR link to Jira
+      - name: Extract PR URL from execution output
+        id: extract-pr
         env:
-          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
-          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
-          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-          ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
-          CLAUDE_RESPONSE: ${{ steps.claude-implement.outputs.response }}
+          EXECUTION_FILE: ${{ steps.claude-implement.outputs.execution_file }}
         run: |
-          PR_URL=$(echo "$CLAUDE_RESPONSE" | grep -oP 'https://github.com/[^\s]+/pull/\d+' | tail -1)
+          RESULT=$(jq -r '[.[] | select(.type == "result") | .result // empty] | last // ""' "$EXECUTION_FILE")
+          PR_URL=$(echo "$RESULT" | grep -oP 'https://github.com/[^\s]+/pull/\d+' | tail -1)
 
           if [ -z "$PR_URL" ]; then
             echo "Warning: Could not extract PR URL from Claude's response"
             PR_URL="(PR URL not detected - check GitHub for the latest PR)"
           fi
 
+          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Post PR link to Jira
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
+          PR_URL: ${{ steps.extract-pr.outputs.pr_url }}
+        run: |
+          jq -n --arg body "$(printf '**Claude has opened a PR:** %s\n\nThe implementation is ready for review. Claude will respond to PR review comments and push fixes.' "$PR_URL")" \
+            '{body: {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: $body}]}]}}' | \
           curl -s -X POST \
             "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/comment" \
             -H "Content-Type: application/json" \
             -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
-            -d "$(jq -n --arg body "**Claude has opened a PR:** ${PR_URL}
-
-          The implementation is ready for review. Claude will respond to PR review comments and push fixes." \
-              '{body: {type: "doc", version: 1, content: [{type: "paragraph", content: [{type: "text", text: $body}]}]}}')"
+            -d @-
 
       - name: Transition ticket to Ready for Review
         env:
