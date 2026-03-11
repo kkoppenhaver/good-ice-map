@@ -52,9 +52,11 @@ jobs:
 
             Be specific to this codebase. Reference actual files, classes, and patterns you find.
 
-            IMPORTANT: No preamble, no title, no introduction. Start directly with the plan content. This will be posted directly to the Jira ticket.
+            If you have any clarifying questions or need more context before implementation, list them at the TOP of your response under a "Questions" heading. The assignee will answer in the Jira comments before approving implementation.
 
-          claude_args: '--allowed-tools "Read,Glob,Grep,Bash(find:*),Bash(ls:*)"'
+            IMPORTANT: No preamble, no title, no introduction. If you have questions, start with "Questions" then the plan. If no questions, start directly with the plan content. This will be posted directly to the Jira ticket.
+
+          claude_args: '--model claude-sonnet-4-6 --max-turns 15 --allowed-tools "Read,Glob,Grep,Bash(find:*),Bash(ls:*)"'
 
       - name: Transition ticket to Ready for Dev
         env:

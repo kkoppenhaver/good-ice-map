@@ -114,19 +114,19 @@ You need **one rule** with branching logic:
          ▼
  claude-jira-plan.yml
    ├── Claude analyzes codebase
-   ├── Posts implementation plan to Jira
+   ├── Posts plan to Jira (with clarifying questions at top, if any)
    ├── Moves ticket to "Ready for Dev"
    └── Unassigns ticket
          │
          ▼
  Human reviews plan in "Ready for Dev"
+   ├── If questions: answer in ticket comments
    ├── To revise: move back to Planning, assign to Claude
    └── To approve: assign to Claude (in Ready for Dev)
          │
          ▼
  claude-jira-implement.yml
-   ├── Moves ticket to "In Progress"
-   ├── Fetches approved plan from Jira comments
+   ├── Fetches all ticket comments (plan, questions, answers)
    ├── Claude creates branch, writes code, opens PR
    ├── Posts PR link to Jira
    ├── Moves ticket to "Ready for Review"
@@ -156,19 +156,20 @@ You need **one rule** with branching logic:
 2. Assign it to Claude
 3. Watch for:
    - GitHub Actions → "Claude Jira - Plan" workflow runs
-   - Claude posts a plan as a Jira comment
+   - Claude posts a plan as a Jira comment (with clarifying questions at top, if any)
    - Ticket moves to "Ready for Dev"
    - Ticket is unassigned
-4. Review the plan, then assign to Claude
-5. Watch for:
+4. If Claude asked questions, answer them in a new comment on the ticket
+5. Assign to Claude to start implementation
+6. Watch for:
    - GitHub Actions → "Claude Jira - Implement" workflow runs
    - Ticket moves to "In Progress"
    - Claude opens a PR in GitHub
    - Claude posts the PR link to Jira
    - Ticket moves to "Ready for Review"
    - Ticket is unassigned
-6. Review the PR on GitHub, leave comments if needed
-7. Approve and merge when ready
+7. Review the PR on GitHub, leave comments if needed
+8. Approve and merge when ready
 
 ## Expanding to Other Projects
 

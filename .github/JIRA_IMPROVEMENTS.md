@@ -3,23 +3,19 @@
 ## TODO
 
 ### 1. Claude asks clarifying questions during planning
-**Status:** Not started
-During the planning phase, Claude should identify any ambiguities or open questions and post them as a comment on the Jira ticket. The human answers in the ticket comments. When the implement workflow runs, it should fetch both the plan and the Q&A thread so Claude has full context.
-
-Implementation approach:
-- Update the plan prompt to instruct Claude to list questions separately from the plan
-- Post questions as a distinct Jira comment (e.g. with a `**Questions**` header)
-- Update `claude-jira-implement.yml`'s "Fetch plan from Jira" step to also grab Q&A comments and pass them to the implement prompt
-- The implement prompt should reference the answers when coding
+**Status:** Done — needs testing
+Claude now puts clarifying questions at the top of the plan comment under a "Questions" heading. The implement workflow fetches all ticket comments (plan + answers) and passes the full thread to Claude.
 
 ### 2. Speed up the planning GitHub Actions run
+**Status:** Done
+Applied `--model claude-sonnet-4-6` and `--max-turns 15` to the plan workflow. Expected to cut execution from ~62s to ~25-35s and cost from ~$0.47 to ~$0.15-0.25 per run.
+
+### 4. Weekly cost report
 **Status:** Not started
-The planning workflow feels slow. Possible optimizations to investigate:
-- Bun install step takes ~700ms but the action downloads it fresh each time — check if caching helps
-- The checkout uses `fetch-depth: 1` which is good, but could a sparse checkout reduce time further?
-- Claude Code SDK setup/initialization overhead — is there a way to warm this up or use a pre-built image?
-- Could we use a smaller/faster model for planning since it's read-only analysis (no code writing)?
-- Look into whether `anthropics/claude-code-action` supports any performance-related options
+The `execution_file` from each run logs `total_cost_usd`. We could build a script or scheduled GitHub Action that:
+- Uses `gh run list` to find all plan/implement runs in a time range
+- Downloads each run's logs and extracts `total_cost_usd`
+- Sums up the total and posts a summary (Slack, Jira comment, or just a workflow artifact)
 
 ### 3. Skip planning — go straight to implementation
 **Status:** Fixed — needs testing

@@ -18,8 +18,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fetch plan from Jira
-        id: fetch-plan
+      - name: Fetch comments from Jira
+        id: fetch-comments
         env:
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
@@ -27,14 +27,14 @@ jobs:
           ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
         run: |
           COMMENTS=$(curl -s \
-            "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/comment?orderBy=-created&maxResults=10" \
+            "${JIRA_BASE_URL}/rest/api/2/issue/${ISSUE_KEY}/comment?orderBy=created" \
             -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}")
 
-          PLAN=$(echo "$COMMENTS" | jq -r '[.comments[] | select(.body.content[0].content[0].text | test("Claude.*Implementation Plan"; "i"))][0].body.content[0].content[0].text // "No plan found"')
+          THREAD=$(echo "$COMMENTS" | jq -r '.comments[] | "[\(.author.displayName)]:\n\(.body)\n"')
 
-          echo "plan<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$PLAN" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "thread<<THREAD_EOF" >> "$GITHUB_OUTPUT"
+          echo "$THREAD" >> "$GITHUB_OUTPUT"
+          echo "THREAD_EOF" >> "$GITHUB_OUTPUT"
 
       - name: Run Claude Code - Implement
         id: claude-implement
@@ -51,14 +51,14 @@ jobs:
             **Description:**
             ${{ github.event.client_payload.description }}
 
-            **Implementation Plan:**
-            ${{ steps.fetch-plan.outputs.plan }}
+            **Ticket comments (plan, questions, and answers):**
+            ${{ steps.fetch-comments.outputs.thread }}
 
             ---
 
             Instructions:
             1. Create a branch named `${{ github.event.client_payload.issue_key }}` (lowercase, e.g., `scrum-123`)
-            2. If an implementation plan is provided above, follow it. If the plan says "No plan found", analyze the ticket summary and description yourself to determine the best approach.
+            2. If an implementation plan exists in the comments above, follow it. If there are answers to clarifying questions, incorporate that context. If there are no comments, analyze the ticket summary and description yourself to determine the best approach.
             3. Implement the changes
             4. Run the test suite to verify nothing is broken
             5. Open a pull request with:
