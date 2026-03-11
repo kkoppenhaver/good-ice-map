@@ -10,6 +10,8 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
+        [x-cloak] { display: none !important; }
+
         #map {
             height: calc(100vh - 64px);
             width: 100%;
@@ -159,6 +161,34 @@
     </nav>
 
     <div id="map"></div>
+
+    @guest
+    <div
+        x-data="{ show: !localStorage.getItem('welcome_seen') }"
+        x-cloak
+        x-show="show"
+        x-on:keydown.escape.window="show = false; localStorage.setItem('welcome_seen', '1')"
+        class="fixed inset-0 flex items-center justify-center"
+        style="z-index: 1000; background: rgba(0,0,0,0.7);"
+        x-on:click.self="show = false; localStorage.setItem('welcome_seen', '1')"
+    >
+        <div class="bg-white border-5 border-black shadow-brutal mx-4 max-w-lg w-full font-mono p-8">
+            <h2 class="text-2xl font-black uppercase tracking-wider mb-4 border-b-5 border-black pb-3">WHAT IS GOOD ICE?</h2>
+            <div class="space-y-3 mb-6 text-base">
+                <p><span class="font-black">Good ice</span> is nugget ice (also called pellet, sonic, or hospital ice) — or any ice that's soft, chewable, and delightfully crunchable.</p>
+                <p>This map helps you <span class="font-black">find places near you</span> that serve good ice, so you never have to settle for hard, hollow cubes again.</p>
+                <p><span class="font-black">Sign up for a free account</span> (we only ask to prevent spam) and post your favorite good-ice spots with a photo.</p>
+                <p>Now get out there and <span class="font-black">explore the map!</span></p>
+            </div>
+            <button
+                x-on:click="show = false; localStorage.setItem('welcome_seen', '1')"
+                class="w-full px-6 py-3 bg-primary-600 text-white font-black uppercase text-lg border-3 border-black shadow-brutal hover:shadow-brutal-lg hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all"
+            >
+                GOT IT
+            </button>
+        </div>
+    </div>
+    @endguest
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
