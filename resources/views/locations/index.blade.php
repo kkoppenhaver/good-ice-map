@@ -168,8 +168,8 @@
         x-cloak
         x-show="show"
         x-on:keydown.escape.window="show = false; localStorage.setItem('welcome_seen', '1')"
-        class="fixed inset-0 z-50 flex items-center justify-center"
-        style="background: rgba(0,0,0,0.7);"
+        class="fixed inset-0 flex items-center justify-center"
+        style="z-index: 1000; background: rgba(0,0,0,0.7);"
         x-on:click.self="show = false; localStorage.setItem('welcome_seen', '1')"
     >
         <div class="bg-white border-5 border-black shadow-brutal mx-4 max-w-lg w-full font-mono p-8">
