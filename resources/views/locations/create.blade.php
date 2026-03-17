@@ -241,8 +241,11 @@
                     // Valid place selected
                     manualPlaceSelected = true;
 
-                    // Populate the name field with the place name
-                    document.getElementById('manual_name').value = place.name || place.formatted_address;
+                    // Populate the name field with the place name (only if empty)
+                    const nameField = document.getElementById('manual_name');
+                    if (!nameField.value.trim()) {
+                        nameField.value = place.name || place.formatted_address;
+                    }
 
                     // Populate coordinates
                     document.getElementById('manual_latitude').value = place.geometry.location.lat();
