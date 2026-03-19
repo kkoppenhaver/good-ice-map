@@ -36,6 +36,46 @@ jobs:
           echo "$THREAD" >> "$GITHUB_OUTPUT"
           echo "THREAD_EOF" >> "$GITHUB_OUTPUT"
 
+      - name: Download Jira attachments
+        id: jira-attachments
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          ISSUE_KEY: ${{ github.event.client_payload.issue_key }}
+        run: |
+          mkdir -p /tmp/jira-attachments
+
+          ATTACHMENTS=$(curl -s \
+            "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}?fields=attachment" \
+            -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" | \
+            jq -r '.fields.attachment[] | select(.mimeType | startswith("image/")) | "\(.id) \(.filename) \(.content)"')
+
+          FILE_LIST=""
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            ID=$(echo "$line" | awk '{print $1}')
+            FILENAME=$(echo "$line" | awk '{print $2}')
+            URL=$(echo "$line" | awk '{print $3}')
+
+            curl -s -o "/tmp/jira-attachments/${FILENAME}" \
+              -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
+              "$URL"
+
+            FILE_LIST="${FILE_LIST}- /tmp/jira-attachments/${FILENAME}\n"
+            echo "Downloaded: ${FILENAME}"
+          done <<< "$ATTACHMENTS"
+
+          if [ -n "$FILE_LIST" ]; then
+            echo "has_attachments=true" >> "$GITHUB_OUTPUT"
+            echo "file_list<<ATTACHMENTS_EOF" >> "$GITHUB_OUTPUT"
+            echo -e "$FILE_LIST" >> "$GITHUB_OUTPUT"
+            echo "ATTACHMENTS_EOF" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_attachments=false" >> "$GITHUB_OUTPUT"
+            echo "file_list=No image attachments found." >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run Claude Code - Implement
         id: claude-implement
         uses: anthropics/claude-code-action@v1
@@ -53,6 +93,10 @@ jobs:
 
             **Ticket comments (plan, questions, and answers):**
             ${{ steps.fetch-comments.outputs.thread }}
+
+            **Attached Images:**
+            ${{ steps.jira-attachments.outputs.file_list }}
+            ${{ steps.jira-attachments.outputs.has_attachments == 'true' && 'IMPORTANT: Use the Read tool to view the attached image files listed above. They contain visual context (mockups, screenshots, designs) relevant to this ticket.' || '' }}
 
             ---
 
