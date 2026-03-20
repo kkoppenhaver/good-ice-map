@@ -61,9 +61,10 @@
         }
 
         .leaflet-popup-content {
-            margin: 16px !important;
-            padding-right: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
             font-family: ui-monospace, monospace !important;
+            width: 100% !important;
         }
 
         .leaflet-popup-tip-container {
@@ -260,19 +261,21 @@
 
                     const imageUrl = location.images && location.images.length > 0 ? location.images[0].url : null;
                     const imageHtml = imageUrl
-                        ? `<img src="${imageUrl}" style="width: calc(100% + 32px); height: 160px; object-fit: cover; display: block; border-bottom: 3px solid black; margin: -16px -16px 12px -16px;" alt="${location.name}" />`
+                        ? `<img src="${imageUrl}" style="width: 100%; height: 160px; object-fit: cover; display: block; border-bottom: 3px solid black;" alt="${location.name}" />`
                         : '';
 
                     marker.bindPopup(`
                         <div style="font-family: ui-monospace, monospace;">
                             ${imageHtml}
-                            <h3 style="font-weight: 900; font-size: 18px; text-transform: uppercase; margin-bottom: 8px;">${location.name}</h3>
-                            <p style="font-size: 14px; margin-bottom: 8px;">${location.address}</p>
-                            <p style="font-size: 14px; margin-bottom: 12px;">${rating}</p>
-                            <a href="/locations/${location.id}"
-                               style="display: inline-block; padding: 8px 16px; background: #9333ea; color: white; font-weight: 900; text-transform: uppercase; font-size: 14px; border: 2px solid black; text-decoration: none;">
-                                View Details
-                            </a>
+                            <div style="padding: 16px;">
+                                <h3 style="font-weight: 900; font-size: 18px; text-transform: uppercase; margin-bottom: 8px;">${location.name}</h3>
+                                <p style="font-size: 14px; margin-bottom: 8px;">${location.address}</p>
+                                <p style="font-size: 14px; margin-bottom: 12px;">${rating}</p>
+                                <a href="/locations/${location.id}"
+                                   style="display: inline-block; padding: 8px 16px; background: #9333ea; color: white; font-weight: 900; text-transform: uppercase; font-size: 14px; border: 2px solid black; text-decoration: none;">
+                                    View Details
+                                </a>
+                            </div>
                         </div>
                     `);
                 });
