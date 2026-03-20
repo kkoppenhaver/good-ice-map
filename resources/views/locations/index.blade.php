@@ -72,24 +72,29 @@
 
         .leaflet-popup-close-button {
             z-index: 1000 !important;
-            background: rgba(0, 0, 0, 0.45) !important;
-            border-radius: 50% !important;
-            color: white !important;
-            font-size: 24px !important;
+            background: white !important;
+            border: 3px solid black !important;
+            border-radius: 0 !important;
+            box-shadow: 3px 3px 0 0 rgba(0, 0, 0, 1) !important;
+            color: black !important;
+            font-family: ui-monospace, monospace !important;
+            font-size: 20px !important;
             font-weight: 900 !important;
-            width: 28px !important;
-            height: 28px !important;
-            line-height: 26px !important;
+            width: 32px !important;
+            height: 32px !important;
+            line-height: 28px !important;
             text-align: center !important;
             padding: 0 !important;
             top: 8px !important;
             right: 8px !important;
-            transition: background 0.2s !important;
+            transition: all 0.2s !important;
         }
 
         .leaflet-popup-close-button:hover {
-            background: rgba(147, 51, 234, 0.85) !important;
+            background: #9333ea !important;
             color: white !important;
+            transform: translate(-2px, -2px) !important;
+            box-shadow: 5px 5px 0 0 rgba(0, 0, 0, 1) !important;
         }
 
         /* Attribution styling */
