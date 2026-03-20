@@ -46,25 +46,26 @@ jobs:
         run: |
           mkdir -p /tmp/jira-attachments
 
-          ATTACHMENTS=$(curl -s \
+          RESPONSE=$(curl -s -f \
             "${JIRA_BASE_URL}/rest/api/3/issue/${ISSUE_KEY}?fields=attachment" \
-            -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" | \
-            jq -r '.fields.attachment[] | select(.mimeType | startswith("image/")) | "\(.id) \(.filename) \(.content)"')
+            -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}") || { echo "Failed to fetch issue attachments"; exit 1; }
+
+          ATTACHMENTS=$(echo "$RESPONSE" | \
+            jq -r '(.fields.attachment // [])[] | select(.mimeType | startswith("image/")) | [.id, .filename, .content] | @tsv') || true
 
           FILE_LIST=""
-          while IFS= read -r line; do
-            [ -z "$line" ] && continue
-            ID=$(echo "$line" | awk '{print $1}')
-            FILENAME=$(echo "$line" | awk '{print $2}')
-            URL=$(echo "$line" | awk '{print $3}')
+          if [ -n "$ATTACHMENTS" ]; then
+            while IFS=$'\t' read -r ID FILENAME URL; do
+              [ -z "$URL" ] && continue
 
-            curl -s -o "/tmp/jira-attachments/${FILENAME}" \
-              -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
-              "$URL"
-
-            FILE_LIST="${FILE_LIST}- /tmp/jira-attachments/${FILENAME}\n"
-            echo "Downloaded: ${FILENAME}"
-          done <<< "$ATTACHMENTS"
+              curl -s -f -o "/tmp/jira-attachments/${FILENAME}" \
+                -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
+                "$URL" && {
+                FILE_LIST="${FILE_LIST}- /tmp/jira-attachments/${FILENAME}\n"
+                echo "Downloaded: ${FILENAME}"
+              } || echo "Warning: Failed to download ${FILENAME}"
+            done <<< "$ATTACHMENTS"
+          fi
 
           if [ -n "$FILE_LIST" ]; then
             echo "has_attachments=true" >> "$GITHUB_OUTPUT"
