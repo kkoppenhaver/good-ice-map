@@ -64,7 +64,6 @@
             margin: 0 !important;
             padding: 0 !important;
             font-family: ui-monospace, monospace !important;
-            width: 100% !important;
         }
 
         .leaflet-popup-tip-container {
@@ -277,7 +276,7 @@
                                 </a>
                             </div>
                         </div>
-                    `);
+                    `, { minWidth: 250 });
                 });
 
                 // Fit map to show all markers if locations exist
