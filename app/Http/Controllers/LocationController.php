@@ -326,17 +326,56 @@ class LocationController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(Location $location)
     {
-        //
+        $this->authorize('update', $location);
+
+        $location->load('images');
+
+        return view('locations.edit', compact('location'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Location $location)
     {
-        //
+        $this->authorize('update', $location);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'address' => 'nullable|string|max:500',
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
+            'place_id' => 'nullable|string',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+        ]);
+
+        $location->update([
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'address' => $validated['address'] ?? $validated['name'],
+            'latitude' => $validated['latitude'],
+            'longitude' => $validated['longitude'],
+            'place_id' => $validated['place_id'] ?? $location->place_id,
+        ]);
+
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $image) {
+                $path = $image->store('location-images', 'r2');
+
+                LocationImage::create([
+                    'location_id' => $location->id,
+                    'image_path' => $path,
+                    'is_primary' => false,
+                    'uploaded_by' => auth()->id(),
+                ]);
+            }
+        }
+
+        return redirect()->route('locations.show', $location)
+            ->with('success', 'Location updated successfully!');
     }
 
     /**

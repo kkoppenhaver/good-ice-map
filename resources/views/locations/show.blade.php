@@ -101,8 +101,12 @@
                             <p class="mt-1">{{ $location->latitude }}, {{ $location->longitude }}</p>
                         </div>
 
-                        @can('delete', $location)
-                            <div class="pt-4 mt-4 border-t-3 border-black">
+                        @can('update', $location)
+                            <div class="pt-4 mt-4 border-t-3 border-black space-y-3">
+                                <a href="{{ route('locations.edit', $location) }}"
+                                   class="block w-full px-4 py-2 bg-primary-600 text-white font-bold uppercase text-sm text-center border-3 border-black shadow-brutal hover:shadow-brutal-sm hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all">
+                                    Edit Location
+                                </a>
                                 <button type="button"
                                         x-data
                                         x-on:click.prevent="$dispatch('open-modal', 'confirm-location-deletion')"
