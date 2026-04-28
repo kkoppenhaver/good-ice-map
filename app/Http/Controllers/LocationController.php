@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Location;
 use App\Models\LocationImage;
+use App\Models\Rating;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 class LocationController extends Controller
@@ -15,11 +18,29 @@ class LocationController extends Controller
     }
 
     /**
-     * Display the map with all approved locations.
+     * Display the map for authenticated users, or the landing page for guests.
      */
     public function index()
     {
-        return view('locations.index');
+        if (auth()->check()) {
+            return view('locations.index');
+        }
+
+        $stats = Cache::remember('landing_stats', 300, fn () => [
+            'locations' => Location::where('status', 'approved')->count(),
+            'ratings' => Rating::count(),
+            'contributors' => User::whereHas('locations', fn ($q) => $q->where('status', 'approved'))->count(),
+        ]);
+
+        $recentImages = LocationImage::whereHas('location', function ($query) {
+            $query->where('status', 'approved');
+        })
+            ->with('location:id,name')
+            ->latest()
+            ->take(8)
+            ->get();
+
+        return view('landing', compact('stats', 'recentImages'));
     }
 
     /**
