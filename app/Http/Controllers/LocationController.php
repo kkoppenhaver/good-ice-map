@@ -7,6 +7,7 @@ use App\Models\LocationImage;
 use App\Models\Rating;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 class LocationController extends Controller
@@ -25,11 +26,11 @@ class LocationController extends Controller
             return view('locations.index');
         }
 
-        $stats = [
+        $stats = Cache::remember('landing_stats', 300, fn () => [
             'locations' => Location::where('status', 'approved')->count(),
             'ratings' => Rating::count(),
-            'contributors' => User::has('locations')->count(),
-        ];
+            'contributors' => User::whereHas('locations', fn ($q) => $q->where('status', 'approved'))->count(),
+        ]);
 
         $recentImages = LocationImage::whereHas('location', function ($query) {
             $query->where('status', 'approved');

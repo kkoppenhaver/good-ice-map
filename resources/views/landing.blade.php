@@ -6,6 +6,23 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Good Ice Map — Find good ice, anywhere.</title>
 
+    <meta name="description" content="A community-built map of every place that serves the good stuff — nugget, pellet, sonic, hospital ice. Find chewable ice near you and never settle for hard, hollow cubes again.">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Good Ice Map">
+    <meta property="og:title" content="Good Ice Map — Find good ice, anywhere.">
+    <meta property="og:description" content="A community-built map of every place that serves the good stuff — nugget, pellet, sonic, hospital ice. Find chewable ice near you and never settle for hard, hollow cubes again.">
+    <meta property="og:url" content="{{ url('/') }}">
+    <meta property="og:image" content="{{ asset('images/map-hero.png') }}">
+    <meta property="og:image:alt" content="A map of good ice locations across the United States">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Good Ice Map — Find good ice, anywhere.">
+    <meta name="twitter:description" content="A community-built map of every place that serves nugget, pellet, sonic, or hospital ice. Find chewable ice near you.">
+    <meta name="twitter:image" content="{{ asset('images/map-hero.png') }}">
+
+    <link rel="canonical" href="{{ url('/') }}">
+
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
