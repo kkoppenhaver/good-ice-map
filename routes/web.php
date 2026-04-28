@@ -5,8 +5,11 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RatingController;
 use Illuminate\Support\Facades\Route;
 
-// Home page with map
+// Home page (landing for guests, map for authenticated users)
 Route::get('/', [LocationController::class, 'index'])->name('home');
+
+// Always-show-the-map route for guests (and authed users who want to bookmark it)
+Route::get('/map', fn () => view('locations.index'))->name('map');
 
 // Public API endpoint for map markers (no auth required)
 Route::get('/api/locations', [LocationController::class, 'api'])->name('api.locations');
