@@ -38,6 +38,68 @@
             cursor: default;
         }
 
+        /* Hero map preview + polaroid collage overlay */
+        .hero-preview {
+            position: relative;
+        }
+        .hero-collage {
+            position: absolute;
+            bottom: -32px;
+            left: -32px;
+            display: flex;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .hero-collage .polaroid {
+            background: white;
+            border: 4px solid black;
+            box-shadow: 6px 6px 0 0 rgba(0, 0, 0, 1);
+            padding: 10px 10px 36px 10px;
+            width: 160px;
+            text-decoration: none;
+            color: black;
+            position: relative;
+            pointer-events: auto;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .hero-collage .polaroid:hover {
+            transform: translate(-3px, -3px) rotate(0deg) !important;
+            box-shadow: 9px 9px 0 0 rgba(0, 0, 0, 1);
+            z-index: 20;
+        }
+        .hero-collage .polaroid img {
+            display: block;
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            border: 2px solid black;
+        }
+        .hero-collage .polaroid .caption {
+            position: absolute;
+            bottom: 8px;
+            left: 10px;
+            right: 10px;
+            font-size: 11px;
+            font-weight: 900;
+            text-transform: uppercase;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .hero-collage .polaroid:nth-child(1) { transform: rotate(-7deg); margin-right: -28px; z-index: 1; }
+        .hero-collage .polaroid:nth-child(2) { transform: rotate(3deg);  margin-right: -28px; z-index: 3; }
+        .hero-collage .polaroid:nth-child(3) { transform: rotate(-2deg); z-index: 2; }
+
+        @media (max-width: 1023px) {
+            .hero-collage { bottom: -20px; left: -16px; }
+            .hero-collage .polaroid { width: 130px; }
+            .hero-collage .polaroid img { height: 110px; }
+        }
+        @media (max-width: 640px) {
+            .hero-collage { display: none; }
+        }
+
         .leaflet-control-zoom {
             border: 3px solid black !important;
             box-shadow: 4px 4px 0 0 rgba(0, 0, 0, 1) !important;
@@ -111,6 +173,24 @@
         </div>
     </nav>
 
+    @php
+        $heroImages = $recentImages->take(4)->map(fn ($img) => [
+            'id' => $img->location_id,
+            'name' => $img->location->name ?? 'Good ice spot',
+            'url' => $img->url,
+        ])->values();
+
+        // Dev fallback when no real ice photos exist yet
+        if ($heroImages->isEmpty()) {
+            $heroImages = collect([
+                ['id' => 1, 'name' => 'Sample Spot A', 'url' => 'https://picsum.photos/seed/ice-1/400/300'],
+                ['id' => 2, 'name' => 'Sample Spot B', 'url' => 'https://picsum.photos/seed/ice-2/400/300'],
+                ['id' => 3, 'name' => 'Sample Spot C', 'url' => 'https://picsum.photos/seed/ice-3/400/300'],
+                ['id' => 4, 'name' => 'Sample Spot D', 'url' => 'https://picsum.photos/seed/ice-4/400/300'],
+            ]);
+        }
+    @endphp
+
     {{-- Hero --}}
     <section class="border-b-5 border-black">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
@@ -134,7 +214,7 @@
                     </div>
                 </div>
 
-                <div>
+                <div class="hero-preview">
                     <a href="{{ route('map') }}" class="block group">
                         <div class="border-5 border-black shadow-brutal-lg group-hover:shadow-brutal-lg group-hover:translate-x-[-3px] group-hover:translate-y-[-3px] transition-all bg-white">
                             <img src="/images/map-hero.png"
@@ -142,6 +222,17 @@
                                  class="block w-full h-auto">
                         </div>
                     </a>
+
+                    @if($heroImages->isNotEmpty())
+                        <div class="hero-collage">
+                            @foreach($heroImages->take(3) as $img)
+                                <a href="{{ route('locations.show', $img['id']) }}" class="polaroid">
+                                    <img src="{{ $img['url'] }}" alt="{{ $img['name'] }}">
+                                    <div class="caption">{{ $img['name'] }}</div>
+                                </a>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
