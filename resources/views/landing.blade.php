@@ -60,8 +60,10 @@
             color: black;
             position: relative;
             pointer-events: auto;
+            cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
         }
+        .hero-collage .polaroid img { cursor: pointer; }
         .hero-collage .polaroid:hover {
             transform: translate(-3px, -3px) rotate(0deg) !important;
             box-shadow: 9px 9px 0 0 rgba(0, 0, 0, 1);

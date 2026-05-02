@@ -37,8 +37,11 @@ class LocationController extends Controller
         })
             ->with('location:id,name')
             ->latest()
+            ->take(50)
+            ->get()
+            ->unique(fn ($img) => strtolower(trim($img->location->name ?? '')))
             ->take(8)
-            ->get();
+            ->values();
 
         return view('landing', compact('stats', 'recentImages'));
     }
