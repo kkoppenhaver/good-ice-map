@@ -326,149 +326,66 @@
             initFormValidation();
         }
 
-        async function parseGoogleMapsLink(url) {
-            try {
-                let fullUrl = url;
+        async function resolveMapsLink(url) {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                || document.querySelector('input[name="_token"]')?.value;
 
-                // If it's a shortened URL, we need to expand it server-side
-                if (url.includes('goo.gl') || url.includes('maps.app.goo.gl')) {
-                    try {
-                        const response = await fetch('/api/expand-url', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ url: url })
-                        });
+            const response = await fetch('/api/parse-maps-link', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({ url }),
+            });
 
-                        if (response.ok) {
-                            const data = await response.json();
-                            fullUrl = data.expanded_url || url;
-                            console.log('Expanded URL:', fullUrl);
-                        } else {
-                            console.error('Failed to expand URL');
-                        }
-                    } catch (error) {
-                        console.error('Error expanding shortened URL:', error);
-                    }
-                }
-
-                // Extract data from the URL
-                let name = null, address = null, lat = null, lng = null, placeId = null;
-
-                // Extract Place ID - only accept ChIJ format (valid Google Places IDs)
-                // Pattern 1: !1s[PLACE_ID]! where PLACE_ID starts with ChIJ
-                let match = fullUrl.match(/!1s(ChIJ[A-Za-z0-9_-]+)/);
-                if (match) {
-                    placeId = match[1];
-                }
-
-                // Pattern 2: data=...!4m...!1s[PLACE_ID] where PLACE_ID starts with ChIJ
-                if (!placeId) {
-                    match = fullUrl.match(/data=[^!]*!4m[^!]*!1s(ChIJ[A-Za-z0-9_-]+)/);
-                    if (match) {
-                        placeId = match[1];
-                    }
-                }
-
-                // Extract coordinates - prioritize precise place coordinates over viewport
-                // Pattern 1: !3dLAT!4dLNG (MOST ACCURATE - actual place coordinates)
-                match = fullUrl.match(/!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/);
-                if (match) {
-                    lat = parseFloat(match[1]);
-                    lng = parseFloat(match[2]);
-                }
-
-                // Pattern 2: @LAT,LNG,ZOOM (viewport center - fallback)
-                if (!lat) {
-                    match = fullUrl.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*),?\d*\.?\d*z?/);
-                    if (match) {
-                        lat = parseFloat(match[1]);
-                        lng = parseFloat(match[2]);
-                    }
-                }
-
-                // Pattern 3: ll=LAT,LNG
-                if (!lat) {
-                    match = fullUrl.match(/[?&]ll=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-                    if (match) {
-                        lat = parseFloat(match[1]);
-                        lng = parseFloat(match[2]);
-                    }
-                }
-
-                // Pattern 4: query parameter with coordinates
-                if (!lat) {
-                    match = fullUrl.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-                    if (match) {
-                        lat = parseFloat(match[1]);
-                        lng = parseFloat(match[2]);
-                    }
-                }
-
-                // Extract name from /place/NAME/
-                match = fullUrl.match(/\/place\/([^/@?#]+)/);
-                if (match) {
-                    name = decodeURIComponent(match[1].replace(/\+/g, ' '));
-                }
-
-                // If we have a place name, use it as address too
-                if (name) {
-                    address = name;
-                }
-
-                console.log('Parsed data:', { name, address, lat, lng, placeId });
-                return { name, address, lat, lng, placeId };
-            } catch (error) {
-                console.error('Error parsing Google Maps link:', error);
+            if (!response.ok) {
                 return null;
             }
+
+            return await response.json();
         }
 
         document.getElementById('google_maps_link').addEventListener('input', async function() {
             const url = this.value.trim();
             if (!url) {
-                // Hide additional fields if URL is cleared
                 document.getElementById('additional_fields_section').style.display = 'none';
                 return;
             }
 
-            // Show loading state in preview
             document.getElementById('additional_fields_section').style.display = 'block';
             document.getElementById('autofilled_preview').style.display = 'block';
-            document.getElementById('preview_content').innerHTML = 
+            document.getElementById('preview_content').innerHTML =
                 '<p class="text-gray-600">Parsing Google Maps link...</p>';
 
-            const data = await parseGoogleMapsLink(url);
+            const data = await resolveMapsLink(url);
 
-            if (data && data.lat && data.lng && data.name) {
-                // We have everything we need from the URL - display immediately with map preview
+            if (data && data.success && data.latitude && data.longitude) {
                 displayLocationWithMap(data, url);
             } else {
-                // Invalid link - show error
                 showError();
             }
         });
 
-
-
         function displayLocationWithMap(data, mapsUrl) {
-            const name = data.name || '';
-            const lat = data.lat;
-            const lng = data.lng;
+            const name = data.name || data.address || '';
+            const address = data.address || name;
+            const lat = data.latitude;
+            const lng = data.longitude;
 
-            // Update hidden fields
             document.getElementById('hidden_name').value = name;
-            document.getElementById('hidden_address').value = name; // Use name as address for consistency
+            document.getElementById('hidden_address').value = address;
             document.getElementById('hidden_latitude').value = lat;
             document.getElementById('hidden_longitude').value = lng;
 
-            // Generate Google Maps Static API image URL
             const mapImageUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=600x300&markers=color:red%7C${lat},${lng}&key={{ config('services.google.places_api_key') }}`;
 
-            // Update preview with map image
             let previewHTML = '<div class="space-y-3">';
             previewHTML += `<p class="text-lg"><span class="font-bold">Location:</span> ${name}</p>`;
+            if (address && address !== name) {
+                previewHTML += `<p class="text-sm"><span class="font-bold">Address:</span> ${address}</p>`;
+            }
             previewHTML += `<div class="mt-3"><img src="${mapImageUrl}" alt="Map preview" class="w-full border-2 border-black" /></div>`;
             previewHTML += `<p class="text-xs text-gray-500">Coordinates: ${lat}, ${lng}</p>`;
             previewHTML += `<p class="text-xs text-gray-500"><a href="${mapsUrl}" target="_blank" class="underline hover:text-primary-600">View on Google Maps</a></p>`;

@@ -16,9 +16,7 @@ Route::get('/api/locations', [LocationController::class, 'api'])->name('api.loca
 
 // Protected API endpoints (require authentication but no CSRF for AJAX)
 Route::middleware(['auth'])->group(function () {
-    Route::post('/api/expand-url', [LocationController::class, 'expandUrl'])->name('api.expand-url');
-    Route::post('/api/search-place', [LocationController::class, 'searchPlace'])->name('api.search-place');
-    Route::post('/api/fetch-place-details', [LocationController::class, 'fetchPlaceDetails'])->name('api.fetch-place-details');
+    Route::post('/api/parse-maps-link', [LocationController::class, 'parseMapsLink'])->name('api.parse-maps-link');
 });
 
 // Location routes
@@ -30,6 +28,7 @@ Route::post('/locations/{location}/rate', [RatingController::class, 'store'])->n
 // Dashboard
 Route::get('/dashboard', function () {
     $locations = auth()->user()->locations()->withCount('ratings')->latest()->get();
+
     return view('dashboard', compact('locations'));
 })->middleware(['auth', 'verified'])->name('dashboard');
 
