@@ -25,7 +25,11 @@
                                 Google Maps Share Link *
                             </label>
                             <input
-                                type="url"
+                                type="text"
+                                inputmode="url"
+                                autocomplete="off"
+                                autocapitalize="off"
+                                spellcheck="false"
                                 id="google_maps_link"
                                 name="google_maps_link"
                                 value="{{ old('google_maps_link') }}"

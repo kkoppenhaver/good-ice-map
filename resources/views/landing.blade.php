@@ -198,7 +198,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
             <div class="grid lg:grid-cols-2 gap-12 items-center">
                 <div>
-                    <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black uppercase leading-none tracking-tight mb-6">
+                    <h1 class="text-5xl sm:text-6xl xl:text-7xl font-black uppercase leading-none tracking-tight mb-6">
                         Find good ice, <span class="text-primary-600">anywhere.</span>
                     </h1>
                     <p class="text-lg sm:text-xl mb-8 max-w-xl leading-relaxed">
