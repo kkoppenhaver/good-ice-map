@@ -8,8 +8,8 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white border-5 border-black shadow-brutal-lg p-8">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white border-5 border-black shadow-brutal-lg p-6 sm:p-8">
                 <form method="POST" action="{{ route('locations.store') }}" enctype="multipart/form-data" class="space-y-6" onsubmit="return validateManualEntry(event)">
                     @csrf
 
@@ -24,19 +24,27 @@
                             <label for="google_maps_link" class="block font-bold uppercase text-sm mb-2">
                                 Google Maps Share Link *
                             </label>
-                            <input
-                                type="text"
-                                inputmode="url"
-                                autocomplete="off"
-                                autocapitalize="off"
-                                spellcheck="false"
-                                id="google_maps_link"
-                                name="google_maps_link"
-                                value="{{ old('google_maps_link') }}"
-                                placeholder="https://maps.app.goo.gl/... or https://www.google.com/maps/place/..."
-                                required
-                                class="w-full px-4 py-3 border-3 border-black font-mono focus:outline-none focus:border-primary-600 @error('google_maps_link') border-red-600 @enderror"
-                            />
+                            <div class="flex gap-2">
+                                <input
+                                    type="text"
+                                    inputmode="url"
+                                    autocomplete="off"
+                                    autocapitalize="off"
+                                    spellcheck="false"
+                                    id="google_maps_link"
+                                    name="google_maps_link"
+                                    value="{{ old('google_maps_link') }}"
+                                    placeholder="https://maps.app.goo.gl/..."
+                                    required
+                                    class="flex-1 min-w-0 px-4 py-3 border-3 border-black font-mono focus:outline-none focus:border-primary-600 @error('google_maps_link') border-red-600 @enderror"
+                                />
+                                <button
+                                    type="button"
+                                    onclick="pasteMapsLinkFromClipboard()"
+                                    class="shrink-0 px-4 py-3 bg-primary-600 text-white font-bold uppercase text-sm border-3 border-black shadow-brutal active:translate-x-[-2px] active:translate-y-[-2px] hover:shadow-brutal-lg hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all">
+                                    Paste
+                                </button>
+                            </div>
                             <p class="text-sm text-gray-600 mt-2">
                                 Paste a Google Maps share link and we'll auto-fill everything for you
                             </p>
@@ -328,6 +336,22 @@
             document.addEventListener('DOMContentLoaded', initFormValidation);
         } else {
             initFormValidation();
+        }
+
+        async function pasteMapsLinkFromClipboard() {
+            const input = document.getElementById('google_maps_link');
+            try {
+                const text = await navigator.clipboard.readText();
+                if (!text) {
+                    input.focus();
+                    return;
+                }
+                input.value = text.trim();
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            } catch (err) {
+                input.focus();
+                alert("Couldn't read your clipboard. Tap the field and long-press to paste, or check your browser's clipboard permission.");
+            }
         }
 
         async function resolveMapsLink(url) {
