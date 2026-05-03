@@ -137,23 +137,23 @@
                             @enderror
                         </div>
 
-                        <!-- Images -->
+                        <!-- Image -->
                         <div class="mb-6">
-                            <label for="images" class="block font-bold uppercase text-sm mb-2">
-                                Images (Proof of Good Ice)
+                            <label for="image" class="block font-bold uppercase text-sm mb-2">
+                                Image (Proof of Good Ice) *
                             </label>
                             <input
                                 type="file"
-                                id="images"
-                                name="images[]"
-                                multiple
+                                id="image"
+                                name="image"
+                                required
                                 accept="image/jpeg,image/png,image/jpg,image/webp"
-                                class="w-full px-4 py-3 border-3 border-black font-mono focus:outline-none focus:border-primary-600 @error('images.*') border-red-600 @enderror"
+                                class="w-full px-4 py-3 border-3 border-black font-mono focus:outline-none focus:border-primary-600 @error('image') border-red-600 @enderror"
                             />
                             <p class="text-sm text-gray-600 mt-2">
-                                Optional: Upload images of the good ice. Max 5MB per image. Formats: JPEG, PNG, WEBP
+                                Required. Max 5MB. Formats: JPEG, PNG, WEBP
                             </p>
-                            @error('images.*')
+                            @error('image')
                                 <p class="text-red-600 text-sm mt-2">{{ $message }}</p>
                             @enderror
                         </div>

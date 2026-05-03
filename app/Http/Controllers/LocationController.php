@@ -110,7 +110,7 @@ class LocationController extends Controller
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
             'google_maps_link' => 'nullable|url|max:2048',
-            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
         // Determine the address to use (either from hidden field or manual_address)
@@ -119,6 +119,11 @@ class LocationController extends Controller
         // Use the name as fallback if no address is provided
         if (empty($address)) {
             $address = $validated['name'];
+        }
+
+        if ($duplicate = Location::findDuplicateByAddress($address)) {
+            return redirect()->route('locations.show', $duplicate)
+                ->with('success', 'This location is already on the map — leave a rating below!');
         }
 
         $location = Location::create([
@@ -132,18 +137,14 @@ class LocationController extends Controller
             'status' => 'approved', // Auto-approve for MVP
         ]);
 
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $index => $image) {
-                $path = $image->store('location-images', 'r2');
+        $path = $request->file('image')->store('location-images', 'r2');
 
-                LocationImage::create([
-                    'location_id' => $location->id,
-                    'image_path' => $path,
-                    'is_primary' => $index === 0,
-                    'uploaded_by' => auth()->id(),
-                ]);
-            }
-        }
+        LocationImage::create([
+            'location_id' => $location->id,
+            'image_path' => $path,
+            'is_primary' => true,
+            'uploaded_by' => auth()->id(),
+        ]);
 
         return redirect()->route('locations.show', $location)
             ->with('success', 'Location submitted successfully!');

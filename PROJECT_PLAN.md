@@ -6,8 +6,8 @@ A Laravel-based web application for discovering and rating locations that serve 
 ## Technology Stack
 
 ### Backend
-- Laravel 11.x
-- MySQL/PostgreSQL
+- Laravel 12.x
+- SQLite (dev)
 - Laravel Breeze (authentication)
 - Intervention/Image (image processing)
 
@@ -16,10 +16,10 @@ A Laravel-based web application for discovering and rating locations that serve 
 - Alpine.js (reactivity)
 - Tailwind CSS
 - Leaflet.js (mapping with OpenStreetMap)
-- Rough.js (sketchy graphics)
+- Rough.js (available; not currently used — see Phase 2 notes)
 
 ### Storage
-- Local filesystem (public/storage) for images
+- Cloudflare R2 (S3-compatible) for images via league/flysystem-aws-s3-v3
 
 ## Database Schema
 
@@ -138,9 +138,9 @@ All guest features plus:
 2. ✅ Database migrations + models
 3. ✅ Basic Blade layouts with brutalist styling
 4. ✅ Leaflet map integration
-5. ✅ Location CRUD (submit, view)
-6. ⏸️ Image upload handling (basic structure in place)
-7. ✅ Basic rating system
+5. ✅ Location CRUD (submit, view, edit, delete)
+6. ✅ Image upload handling (multi-image, primary flag, R2 storage)
+7. ✅ Basic rating system (one rating per user, edit-in-place via `updateOrCreate`)
 
 **Notes:**
 - Brutalist design system fully implemented with:
@@ -155,13 +155,22 @@ All guest features plus:
 
 **Estimated Time: 8-12 hours** | **Actual: ~10 hours**
 
+### Shipped Beyond Original MVP
+- **Cloudflare R2** image storage (replaced local filesystem from original plan)
+- **Public landing page** for logged-out visitors with cached stats, SEO metadata, and polaroid-collage hero
+- **Location editing** for submitters: name + description, gated by `LocationPolicy::update`. Address/coordinates intentionally immutable.
+- **Google Maps share-link autofill**: pasting a maps URL resolves through `GoogleMapsResolver` (URL expansion → regex parse → Place Details lookup) and returns a real `formatted_address` instead of the place name.
+- **Soft deletes** on locations + delete affordance on dashboard and detail page.
+- **Chain location import pipeline**: artisan command + scraper services for Google Places, OpenStreetMap, and Reddit (`ImportChainLocations`).
+- **SEO basics**: meta tags on landing, route-level caching for hero stats.
+
 ### Phase 2: Enhancement - 🚧 IN PROGRESS
-1. ⬜ Proximity search/filtering
-2. ⬜ User dashboard (route exists, needs enhancement)
-3. ⬜ Refine sketch design with Rough.js (decided against sketchy backgrounds for cleaner aesthetic)
-4. ⬜ Image gallery/lightbox
+1. ⬜ Proximity search/filtering (no `/api/locations/nearby` yet)
+2. ⬜ User dashboard polish (basic list with View/Edit/Delete shipped; no filters/sorting/stats)
+3. ❌ Refine sketch design with Rough.js — decided against; cleaner brutalist aesthetic preferred
+4. ❌ Image gallery / lightbox — out of scope; one image per location enforced at submission
 5. ⬜ Form validation improvements
-6. ⬜ Loading states + Alpine.js interactivity
+6. ⬜ Loading states + Alpine.js interactivity polish
 
 **Estimated Time: 6-8 hours**
 

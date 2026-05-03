@@ -46,25 +46,13 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Left Column: Images and Info -->
             <div class="space-y-6">
-                <!-- Images -->
+                <!-- Image -->
                 @if ($location->images->count() > 0)
                     <div class="border-5 border-black shadow-brutal-lg overflow-hidden">
                         <img src="{{ $location->images->first()->url }}"
                              alt="{{ $location->name }}"
                              class="w-full h-96 object-cover">
                     </div>
-
-                    @if ($location->images->count() > 1)
-                        <div class="grid grid-cols-3 gap-4">
-                            @foreach ($location->images->skip(1) as $image)
-                                <div class="border-3 border-black shadow-brutal overflow-hidden">
-                                    <img src="{{ $image->url }}"
-                                         alt="{{ $location->name }}"
-                                         class="w-full h-24 object-cover">
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
                 @endif
 
                 <!-- Location Info -->

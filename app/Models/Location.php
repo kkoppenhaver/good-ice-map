@@ -57,4 +57,18 @@ class Location extends Model
     {
         return $this->images()->where('is_primary', true)->first();
     }
+
+    public static function normalizeAddress(string $address): string
+    {
+        return strtolower(trim(preg_replace('/\s+/', ' ', $address)));
+    }
+
+    public static function findDuplicateByAddress(string $address): ?self
+    {
+        $needle = self::normalizeAddress($address);
+
+        return self::where('status', 'approved')
+            ->whereRaw('LOWER(TRIM(address)) = ?', [$needle])
+            ->first();
+    }
 }
