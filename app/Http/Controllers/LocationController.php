@@ -7,6 +7,7 @@ use App\Models\LocationImage;
 use App\Models\Rating;
 use App\Models\User;
 use App\Services\GoogleMapsResolver;
+use App\Services\ModerationNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -100,7 +101,7 @@ class LocationController extends Controller
     /**
      * Store a newly created location.
      */
-    public function store(Request $request)
+    public function store(Request $request, ModerationNotifier $notifier)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -145,6 +146,8 @@ class LocationController extends Controller
             'is_primary' => true,
             'uploaded_by' => auth()->id(),
         ]);
+
+        $notifier->notifyPending($location);
 
         return redirect()->route('dashboard')
             ->with('success', "Submitted! It'll appear on the map after a quick review.");
