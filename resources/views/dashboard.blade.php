@@ -23,7 +23,14 @@
                             @endif
 
                             <div class="p-4">
-                                <h3 class="font-bold text-xl uppercase mb-2">{{ $location->name }}</h3>
+                                <div class="flex items-center justify-between mb-2 gap-2">
+                                    <h3 class="font-bold text-xl uppercase">{{ $location->name }}</h3>
+                                    @if ($location->status === 'pending')
+                                        <span class="shrink-0 px-2 py-1 bg-yellow-200 border-3 border-black text-xs font-bold uppercase">
+                                            Pending Review
+                                        </span>
+                                    @endif
+                                </div>
                                 <p class="text-sm mb-2">{{ Str::limit($location->address, 50) }}</p>
 
                                 <div class="flex items-center justify-between mb-4">

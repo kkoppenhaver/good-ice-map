@@ -160,6 +160,9 @@ All guest features plus:
 - **Public landing page** for logged-out visitors with cached stats, SEO metadata, and polaroid-collage hero
 - **Location editing** for submitters: name + description, gated by `LocationPolicy::update`. Address/coordinates intentionally immutable.
 - **Google Maps share-link autofill**: pasting a maps URL resolves through `GoogleMapsResolver` (URL expansion → regex parse → Place Details lookup) and returns a real `formatted_address` instead of the place name.
+- **One image per location** enforced at submission (image required).
+- **Duplicate-address detection**: submissions matching an existing approved location's normalized address redirect the user to leave a rating instead.
+- **Admin moderation queue**: `is_admin` flag, `admin` Gate, `/admin/locations` queue with approve/reject. New user submissions land as `pending` and only appear on the public map after approval. Rejected submissions are hidden from the submitter.
 - **Soft deletes** on locations + delete affordance on dashboard and detail page.
 - **Chain location import pipeline**: artisan command + scraper services for Google Places, OpenStreetMap, and Reddit (`ImportChainLocations`).
 - **SEO basics**: meta tags on landing, route-level caching for hero stats.
@@ -175,11 +178,11 @@ All guest features plus:
 **Estimated Time: 6-8 hours**
 
 ### Phase 3: Polish
-1. Admin panel for approvals
-2. Search functionality
-3. Responsive design refinement
-4. Performance optimization
-5. SEO considerations
+1. ✅ Admin panel for approvals (moderation queue gated by `is_admin`)
+2. ⬜ Search functionality
+3. ⬜ Responsive design refinement
+4. 🚧 Performance optimization (landing-stats cache shipped; more TBD)
+5. 🚧 SEO considerations (landing meta + cache shipped; more TBD)
 
 **Estimated Time: 4-6 hours**
 

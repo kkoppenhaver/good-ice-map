@@ -134,7 +134,7 @@ class LocationController extends Controller
             'latitude' => $validated['latitude'],
             'longitude' => $validated['longitude'],
             'submitted_by' => auth()->id(),
-            'status' => 'approved', // Auto-approve for MVP
+            'status' => 'pending',
         ]);
 
         $path = $request->file('image')->store('location-images', 'r2');
@@ -146,8 +146,8 @@ class LocationController extends Controller
             'uploaded_by' => auth()->id(),
         ]);
 
-        return redirect()->route('locations.show', $location)
-            ->with('success', 'Location submitted successfully!');
+        return redirect()->route('dashboard')
+            ->with('success', "Submitted! It'll appear on the map after a quick review.");
     }
 
     /**
@@ -155,6 +155,8 @@ class LocationController extends Controller
      */
     public function show(Location $location)
     {
+        $this->authorize('view', $location);
+
         $location->load(['images', 'ratings.user', 'submittedBy']);
 
         return view('locations.show', compact('location'));

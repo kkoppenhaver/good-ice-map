@@ -29,7 +29,7 @@ class LocationStoreTest extends TestCase
         $this->assertSame(0, Location::count());
     }
 
-    public function test_stores_single_primary_image(): void
+    public function test_stores_single_primary_image_as_pending(): void
     {
         Storage::fake('r2');
         $user = User::factory()->create();
@@ -42,11 +42,28 @@ class LocationStoreTest extends TestCase
                 'address' => '123 Ice St',
                 'image' => UploadedFile::fake()->image('ice.jpg'),
             ])
-            ->assertRedirect();
+            ->assertRedirect('/dashboard');
 
         $location = Location::firstOrFail();
+        $this->assertSame('pending', $location->status);
         $this->assertSame(1, $location->images()->count());
         $this->assertTrue($location->images->first()->is_primary);
+    }
+
+    public function test_pending_locations_do_not_appear_on_public_api(): void
+    {
+        Location::create([
+            'name' => 'Pending',
+            'address' => '1 Ice Ave, Anywhere, USA',
+            'latitude' => 40.0,
+            'longitude' => -75.0,
+            'submitted_by' => User::factory()->create()->id,
+            'status' => 'pending',
+        ]);
+
+        $this->getJson('/api/locations')
+            ->assertOk()
+            ->assertJsonCount(0);
     }
 
     public function test_duplicate_address_redirects_to_existing_location(): void

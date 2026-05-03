@@ -43,6 +43,18 @@
             </div>
         @endif
 
+        @if ($location->status === 'pending')
+            <div class="mb-6 p-4 bg-yellow-100 border-3 border-black shadow-brutal">
+                <p class="font-bold uppercase">Pending Review</p>
+                <p class="text-sm mt-1">This location is awaiting admin approval and isn't visible on the public map yet.</p>
+            </div>
+        @elseif ($location->status === 'rejected')
+            <div class="mb-6 p-4 bg-red-100 border-3 border-black shadow-brutal">
+                <p class="font-bold uppercase">Rejected</p>
+                <p class="text-sm mt-1">This submission was rejected and is not visible on the public map.</p>
+            </div>
+        @endif
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Left Column: Images and Info -->
             <div class="space-y-6">

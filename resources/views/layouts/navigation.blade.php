@@ -37,6 +37,12 @@
                             {{ __('Profile') }}
                         </x-dropdown-link>
 
+                        @can('admin')
+                            <x-dropdown-link :href="route('admin.locations.index')">
+                                {{ __('Admin') }}
+                            </x-dropdown-link>
+                        @endcan
+
                         <!-- Authentication -->
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
@@ -82,6 +88,12 @@
                 <x-responsive-nav-link :href="route('profile.edit')">
                     {{ __('Profile') }}
                 </x-responsive-nav-link>
+
+                @can('admin')
+                    <x-responsive-nav-link :href="route('admin.locations.index')">
+                        {{ __('Admin') }}
+                    </x-responsive-nav-link>
+                @endcan
 
                 <!-- Authentication -->
                 <form method="POST" action="{{ route('logout') }}">

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminLocationController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RatingController;
@@ -27,10 +28,21 @@ Route::post('/locations/{location}/rate', [RatingController::class, 'store'])->n
 
 // Dashboard
 Route::get('/dashboard', function () {
-    $locations = auth()->user()->locations()->withCount('ratings')->latest()->get();
+    $locations = auth()->user()->locations()
+        ->whereIn('status', ['pending', 'approved'])
+        ->withCount('ratings')
+        ->latest()
+        ->get();
 
     return view('dashboard', compact('locations'));
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+// Admin moderation
+Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/locations', [AdminLocationController::class, 'index'])->name('locations.index');
+    Route::post('/locations/{location}/approve', [AdminLocationController::class, 'approve'])->name('locations.approve');
+    Route::post('/locations/{location}/reject', [AdminLocationController::class, 'reject'])->name('locations.reject');
+});
 
 // Profile routes
 Route::middleware('auth')->group(function () {
