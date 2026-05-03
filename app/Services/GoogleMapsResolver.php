@@ -19,11 +19,26 @@ class GoogleMapsResolver
         $longUrl = $this->parser->isShortLink($url) ? $this->expand($url) : $url;
         $parsed = $this->parser->parse($longUrl);
 
+        $usedGeocodeFallback = false;
+        if (! $parsed['place_id'] && $parsed['latitude'] === null && $parsed['longitude'] === null && $parsed['name']) {
+            $geo = $this->geocodeByName($parsed['name']);
+            if ($geo) {
+                $parsed['latitude'] = $geo['latitude'];
+                $parsed['longitude'] = $geo['longitude'];
+                $parsed['place_id'] = $geo['place_id'];
+                $usedGeocodeFallback = true;
+            }
+        }
+
         $address = null;
         if ($parsed['place_id'] || ($parsed['latitude'] !== null && $parsed['longitude'] !== null)) {
             $details = $this->fetchPlaceDetails($parsed);
             $address = $details['address'] ?? null;
-            $parsed['name'] = $parsed['name'] ?? ($details['name'] ?? null);
+            // The mobile-share URL embeds the full address as the name, so when we recovered
+            // the place via geocoding, prefer the canonical name from Place Details.
+            $parsed['name'] = $usedGeocodeFallback && ! empty($details['name'])
+                ? $details['name']
+                : ($parsed['name'] ?? ($details['name'] ?? null));
             $parsed['place_id'] = $parsed['place_id'] ?? ($details['place_id'] ?? null);
             $parsed['latitude'] = $parsed['latitude'] ?? ($details['latitude'] ?? null);
             $parsed['longitude'] = $parsed['longitude'] ?? ($details['longitude'] ?? null);
@@ -35,6 +50,34 @@ class GoogleMapsResolver
             'latitude' => $parsed['latitude'],
             'longitude' => $parsed['longitude'],
             'place_id' => $parsed['place_id'],
+        ];
+    }
+
+    /**
+     * @return array{latitude: ?float, longitude: ?float, place_id: ?string}|null
+     */
+    private function geocodeByName(string $name): ?array
+    {
+        $apiKey = config('services.google.places_api_key');
+        if (empty($apiKey)) {
+            return null;
+        }
+
+        $response = Http::timeout(10)->get('https://maps.googleapis.com/maps/api/geocode/json', [
+            'address' => $name,
+            'key' => $apiKey,
+        ]);
+
+        if (! $response->ok() || empty($response->json('results'))) {
+            return null;
+        }
+
+        $first = $response->json('results.0');
+
+        return [
+            'latitude' => $first['geometry']['location']['lat'] ?? null,
+            'longitude' => $first['geometry']['location']['lng'] ?? null,
+            'place_id' => $first['place_id'] ?? null,
         ];
     }
 

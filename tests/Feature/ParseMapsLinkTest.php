@@ -81,6 +81,40 @@ class ParseMapsLinkTest extends TestCase
             ->assertJsonPath('place_id', 'ChIJfromGeocode');
     }
 
+    public function test_geocodes_by_name_for_mobile_share_links(): void
+    {
+        // Mobile-app share links expand to a URL with the legacy hex feature ID
+        // (no ChIJ place_id, no !3d/!4d coordinates), only a /place/<full address> segment.
+        $user = User::factory()->create();
+
+        Http::fake([
+            'maps.googleapis.com/maps/api/geocode/json*' => Http::response([
+                'results' => [
+                    [
+                        'place_id' => 'ChIJ415SVCrTD4gRKUKd4i7yICg',
+                        'geometry' => ['location' => ['lat' => 41.9540394, 'lng' => -87.6505912]],
+                    ],
+                ],
+            ]),
+            'maps.googleapis.com/maps/api/place/details/json*' => Http::response([
+                'result' => [
+                    'name' => 'TRIO',
+                    'formatted_address' => '841 W Irving Park Rd, Chicago, IL 60613, USA',
+                    'geometry' => ['location' => ['lat' => 41.9540394, 'lng' => -87.6505912]],
+                ],
+            ]),
+        ]);
+
+        $url = 'https://www.google.com/maps/place/TRIO,+841+W+Irving+Park+Rd,+Chicago,+IL+60613/data=!4m2!3m1!1s0x880fd32a54525ee3:0x2820f22ee29d4229';
+
+        $this->actingAs($user)
+            ->postJson('/api/parse-maps-link', ['url' => $url])
+            ->assertOk()
+            ->assertJsonPath('name', 'TRIO')
+            ->assertJsonPath('address', '841 W Irving Park Rd, Chicago, IL 60613, USA')
+            ->assertJsonPath('place_id', 'ChIJ415SVCrTD4gRKUKd4i7yICg');
+    }
+
     public function test_returns_422_when_url_has_no_extractable_coordinates(): void
     {
         $user = User::factory()->create();
