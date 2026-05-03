@@ -46,7 +46,11 @@
                                 <div class="flex gap-2">
                                     <a href="{{ route('locations.show', $location) }}"
                                        class="flex-1 block text-center px-4 py-2 bg-white font-bold uppercase text-sm border-3 border-black shadow-brutal hover:shadow-brutal-sm hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all">
-                                        View Details
+                                        View
+                                    </a>
+                                    <a href="{{ route('locations.edit', $location) }}"
+                                       class="flex-1 block text-center px-4 py-2 bg-white font-bold uppercase text-sm border-3 border-black shadow-brutal hover:shadow-brutal-sm hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all">
+                                        Edit
                                     </a>
                                     <button type="button"
                                             x-data

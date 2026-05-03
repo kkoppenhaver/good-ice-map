@@ -348,19 +348,31 @@ class LocationController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Show the form for editing the specified location.
      */
-    public function edit(string $id)
+    public function edit(Location $location)
     {
-        //
+        $this->authorize('update', $location);
+
+        return view('locations.edit', compact('location'));
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update the name and description of the specified location.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Location $location)
     {
-        //
+        $this->authorize('update', $location);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+        ]);
+
+        $location->update($validated);
+
+        return redirect()->route('locations.show', $location)
+            ->with('success', 'Location updated successfully!');
     }
 
     /**
