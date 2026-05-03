@@ -13,7 +13,7 @@
 
                 <!-- Page Title -->
                 @isset($header)
-                    <h1 class="ms-6 ps-6 border-l-3 border-black text-xl font-bold uppercase">{{ $header }}</h1>
+                    <h1 class="hidden md:block ms-6 ps-6 border-l-3 border-black text-xl font-bold uppercase">{{ $header }}</h1>
                 @endisset
             </div>
 
