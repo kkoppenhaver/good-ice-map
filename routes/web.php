@@ -4,6 +4,8 @@ use App\Http\Controllers\AdminLocationController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RatingController;
+use App\Http\Controllers\SlackInteractionController;
+use App\Http\Middleware\VerifySlackSignature;
 use Illuminate\Support\Facades\Route;
 
 // Home page (landing for guests, map for authenticated users)
@@ -36,6 +38,11 @@ Route::get('/dashboard', function () {
 
     return view('dashboard', compact('locations'));
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+// Slack interactivity webhook (signature-verified, no auth)
+Route::post('/api/slack/interactions', [SlackInteractionController::class, 'handle'])
+    ->middleware(VerifySlackSignature::class)
+    ->name('slack.interactions');
 
 // Admin moderation
 Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group(function () {

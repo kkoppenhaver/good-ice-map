@@ -15,18 +15,13 @@ class ModerationNotifier
             return;
         }
 
-        $submitter = $location->submittedBy?->name ?? 'Unknown';
-        $queueUrl = route('admin.locations.index');
-        $text = sprintf(
-            "🆕 New ice spot pending review: *%s*\n%s\nSubmitted by %s — <%s|Open queue>",
-            $location->name,
-            $location->address,
-            $submitter,
-            $queueUrl,
-        );
+        $payload = [
+            'text' => SlackLocationBlocks::fallbackText($location),
+            'blocks' => SlackLocationBlocks::build($location),
+        ];
 
         try {
-            Http::timeout(5)->post($url, ['text' => $text]);
+            Http::timeout(5)->post($url, $payload);
         } catch (\Throwable $e) {
             Log::warning('Slack moderation webhook failed', [
                 'location_id' => $location->id,

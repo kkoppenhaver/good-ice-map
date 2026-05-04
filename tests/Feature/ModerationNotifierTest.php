@@ -34,11 +34,27 @@ class ModerationNotifierTest extends TestCase
             ->assertRedirect('/dashboard');
 
         Http::assertSent(function ($request) {
-            return $request->url() === 'https://hooks.slack.com/services/FAKE/HOOK/URL'
-                && str_contains($request['text'], 'Hidden Gem')
-                && str_contains($request['text'], '500 Cool St')
-                && str_contains($request['text'], 'Alice')
-                && str_contains($request['text'], '/admin/locations');
+            if ($request->url() !== 'https://hooks.slack.com/services/FAKE/HOOK/URL') {
+                return false;
+            }
+
+            $body = $request->data();
+            $blocks = $body['blocks'] ?? [];
+
+            $blocksJson = json_encode($blocks);
+            $hasContent = str_contains($blocksJson, 'Hidden Gem')
+                && str_contains($blocksJson, '500 Cool St')
+                && str_contains($blocksJson, 'Alice');
+
+            $actionsBlock = collect($blocks)->firstWhere('type', 'actions');
+            $actionIds = collect($actionsBlock['elements'] ?? [])->pluck('action_id')->all();
+            $hasButtons = in_array('approve_location', $actionIds, true)
+                && in_array('reject_location', $actionIds, true)
+                && in_array('view_location', $actionIds, true);
+
+            $hasImage = collect($blocks)->contains(fn ($b) => ($b['type'] ?? null) === 'image');
+
+            return $hasContent && $hasButtons && $hasImage && ! empty($body['text']);
         });
     }
 
