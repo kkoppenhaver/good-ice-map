@@ -375,6 +375,28 @@
             return await response.json();
         }
 
+        // If launched via Web Share Target, pre-fill from query params (?url= or ?text=)
+        function prefillFromShareTarget() {
+            const params = new URLSearchParams(window.location.search);
+            const shared = params.get('url') || params.get('text') || params.get('title');
+            if (!shared) return;
+
+            // Some apps cram the URL into the text field; pull the first URL out if so.
+            const match = shared.match(/https?:\/\/\S+/);
+            const value = match ? match[0] : shared.trim();
+            if (!value) return;
+
+            const input = document.getElementById('google_maps_link');
+            input.value = value;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', prefillFromShareTarget);
+        } else {
+            prefillFromShareTarget();
+        }
+
         document.getElementById('google_maps_link').addEventListener('input', async function() {
             const url = this.value.trim();
             if (!url) {
