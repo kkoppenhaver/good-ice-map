@@ -115,6 +115,37 @@ class ParseMapsLinkTest extends TestCase
             ->assertJsonPath('place_id', 'ChIJ415SVCrTD4gRKUKd4i7yICg');
     }
 
+    public function test_prefers_place_details_name_when_url_has_no_chij_place_id(): void
+    {
+        // Some mobile-share URLs include lat/lng plus an address-as-name in the /place/ segment
+        // but no ChIJ place_id. We must reverse-geocode and use the canonical Place Details name
+        // (e.g. "Circle K") rather than the address that was embedded in the URL.
+        $user = User::factory()->create();
+
+        Http::fake([
+            'maps.googleapis.com/maps/api/geocode/json*' => Http::response([
+                'results' => [
+                    ['place_id' => 'ChIJreverseGeocoded'],
+                ],
+            ]),
+            'maps.googleapis.com/maps/api/place/details/json*' => Http::response([
+                'result' => [
+                    'name' => 'Circle K',
+                    'formatted_address' => '485 Queen St W, Toronto, ON M5V 2A9, Canada',
+                    'geometry' => ['location' => ['lat' => 43.6481874, 'lng' => -79.3979691]],
+                ],
+            ]),
+        ]);
+
+        $url = 'https://www.google.com/maps/place/485+Queen+St+W,+Toronto,+ON+M5V+2A9,+Canada/@43.6481874,-79.3979691,17z';
+
+        $this->actingAs($user)
+            ->postJson('/api/parse-maps-link', ['url' => $url])
+            ->assertOk()
+            ->assertJsonPath('name', 'Circle K')
+            ->assertJsonPath('address', '485 Queen St W, Toronto, ON M5V 2A9, Canada');
+    }
+
     public function test_returns_422_when_url_has_no_extractable_coordinates(): void
     {
         $user = User::factory()->create();

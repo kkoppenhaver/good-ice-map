@@ -19,14 +19,16 @@ class GoogleMapsResolver
         $longUrl = $this->parser->isShortLink($url) ? $this->expand($url) : $url;
         $parsed = $this->parser->parse($longUrl);
 
-        $usedGeocodeFallback = false;
+        // Mobile-share URLs embed an address (or other free-form text) as the /place/<segment>/
+        // "name". Only trust the URL's name when the URL also carries a real ChIJ place_id.
+        $hasUrlPlaceId = $parsed['place_id'] !== null;
+
         if (! $parsed['place_id'] && $parsed['latitude'] === null && $parsed['longitude'] === null && $parsed['name']) {
             $geo = $this->geocodeByName($parsed['name']);
             if ($geo) {
                 $parsed['latitude'] = $geo['latitude'];
                 $parsed['longitude'] = $geo['longitude'];
                 $parsed['place_id'] = $geo['place_id'];
-                $usedGeocodeFallback = true;
             }
         }
 
@@ -34,11 +36,9 @@ class GoogleMapsResolver
         if ($parsed['place_id'] || ($parsed['latitude'] !== null && $parsed['longitude'] !== null)) {
             $details = $this->fetchPlaceDetails($parsed);
             $address = $details['address'] ?? null;
-            // The mobile-share URL embeds the full address as the name, so when we recovered
-            // the place via geocoding, prefer the canonical name from Place Details.
-            $parsed['name'] = $usedGeocodeFallback && ! empty($details['name'])
-                ? $details['name']
-                : ($parsed['name'] ?? ($details['name'] ?? null));
+            $parsed['name'] = $hasUrlPlaceId
+                ? ($parsed['name'] ?? $details['name'] ?? null)
+                : ($details['name'] ?? $parsed['name'] ?? null);
             $parsed['place_id'] = $parsed['place_id'] ?? ($details['place_id'] ?? null);
             $parsed['latitude'] = $parsed['latitude'] ?? ($details['latitude'] ?? null);
             $parsed['longitude'] = $parsed['longitude'] ?? ($details['longitude'] ?? null);
