@@ -1,11 +1,8 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Good Ice Map — Find good ice, anywhere.</title>
+@extends('layouts.base')
 
+@section('title', 'Good Ice Map — Find good ice, anywhere.')
+
+@section('meta')
     <meta name="description" content="A community-built map of every place that serves the good stuff — nugget, pellet, sonic, hospital ice. Find chewable ice near you and never settle for hard, hollow cubes again.">
 
     <meta property="og:type" content="website">
@@ -22,22 +19,10 @@
     <meta name="twitter:image" content="{{ asset('images/map-hero.png') }}">
 
     <link rel="canonical" href="{{ url('/') }}">
+@endsection
 
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="manifest" href="/site.webmanifest">
-
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(() => {});
-            });
-        }
-    </script>
-
+@section('head')
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
         #mini-map {
@@ -156,8 +141,9 @@
             background: white !important;
         }
     </style>
-</head>
-<body class="font-mono bg-white text-black">
+@endsection
+
+@section('body')
     {{-- Nav --}}
     <nav class="bg-white border-b-5 border-black">
         <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
@@ -486,5 +472,4 @@
                 }
             });
     </script>
-</body>
-</html>
+@endsection
