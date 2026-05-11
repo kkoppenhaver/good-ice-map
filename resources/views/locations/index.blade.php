@@ -132,6 +132,92 @@
             border-right: 5px solid black;
             border-bottom: 5px solid black;
         }
+
+        /* Locate button (bottom-right floating) */
+        .locate-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            background: white;
+            border: 3px solid black;
+            box-shadow: 4px 4px 0 0 rgba(0, 0, 0, 1);
+            color: black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            transition: transform 0.15s, box-shadow 0.15s, background-color 0.15s;
+            z-index: 999;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .locate-btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0 0 rgba(0, 0, 0, 1);
+        }
+
+        .locate-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 0 0 0 0 rgba(0, 0, 0, 1);
+        }
+
+        .locate-btn.tracking {
+            background: #9333ea;
+            color: white;
+        }
+
+        .locate-btn.loading svg {
+            animation: pulse-locate 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse-locate {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.35; }
+        }
+
+        /* User location dot */
+        .user-location-marker .user-dot {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #9333ea;
+            border: 4px solid black;
+            box-shadow: 3px 3px 0 0 rgba(0, 0, 0, 1);
+            box-sizing: border-box;
+        }
+
+        /* Brutalist toast */
+        .locate-toast {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border: 3px solid black;
+            box-shadow: 4px 4px 0 0 rgba(0, 0, 0, 1);
+            padding: 10px 16px;
+            font-family: ui-monospace, monospace;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            z-index: 1001;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            max-width: calc(100% - 32px);
+            text-align: center;
+        }
+
+        .locate-toast.visible {
+            opacity: 1;
+        }
     </style>
 @endsection
 
@@ -173,6 +259,18 @@
     </nav>
 
     <div id="map"></div>
+
+    <button id="locate-btn" type="button" class="locate-btn" aria-label="Show my location" title="Tap to track your location. Long-press to stop.">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <line x1="12" y1="2" x2="12" y2="5"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+            <line x1="2" y1="12" x2="5" y2="12"/>
+            <line x1="19" y1="12" x2="22" y2="12"/>
+        </svg>
+    </button>
+
+    <div id="locate-toast" class="locate-toast" role="status" aria-live="polite"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
@@ -259,5 +357,131 @@
                     map.fitBounds(bounds, { padding: [50, 50] });
                 }
             });
+
+        // --- Geolocation: live tracking with brutalist locate button ---
+        const LOCATE_ZOOM = 16;
+        const LONG_PRESS_MS = 500;
+
+        const locateBtn = document.getElementById('locate-btn');
+        const toastEl = document.getElementById('locate-toast');
+        let toastTimer = null;
+
+        function showToast(msg) {
+            toastEl.textContent = msg;
+            toastEl.classList.add('visible');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toastEl.classList.remove('visible'), 3500);
+        }
+
+        const userIcon = L.divIcon({
+            className: 'user-location-marker',
+            html: '<div class="user-dot"></div>',
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
+        });
+
+        let watchId = null;
+        let userMarker = null;
+        let isTracking = false;
+        let isLoading = false;
+        let firstFix = true;
+
+        function setBtnState(state) {
+            locateBtn.classList.remove('loading', 'tracking');
+            if (state === 'loading' || state === 'tracking') {
+                locateBtn.classList.add(state);
+            }
+        }
+
+        function startTracking() {
+            if (!('geolocation' in navigator)) {
+                showToast('Geolocation not supported');
+                return;
+            }
+            isLoading = true;
+            firstFix = true;
+            setBtnState('loading');
+
+            watchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    const latlng = [pos.coords.latitude, pos.coords.longitude];
+                    if (!userMarker) {
+                        userMarker = L.marker(latlng, {
+                            icon: userIcon,
+                            interactive: false,
+                            keyboard: false,
+                        }).addTo(map);
+                    } else {
+                        userMarker.setLatLng(latlng);
+                    }
+                    if (firstFix) {
+                        firstFix = false;
+                        isLoading = false;
+                        isTracking = true;
+                        setBtnState('tracking');
+                        map.setView(latlng, LOCATE_ZOOM);
+                    }
+                },
+                (err) => {
+                    stopTracking();
+                    if (err.code === err.PERMISSION_DENIED) {
+                        showToast('Location permission denied');
+                    } else if (err.code === err.TIMEOUT) {
+                        showToast('Location request timed out');
+                    } else {
+                        showToast('Location unavailable');
+                    }
+                },
+                { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+            );
+        }
+
+        function stopTracking() {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            if (userMarker) {
+                map.removeLayer(userMarker);
+                userMarker = null;
+            }
+            isTracking = false;
+            isLoading = false;
+            firstFix = true;
+            setBtnState('off');
+        }
+
+        let longPressTimer = null;
+        let longPressed = false;
+
+        locateBtn.addEventListener('pointerdown', () => {
+            longPressed = false;
+            longPressTimer = setTimeout(() => {
+                longPressed = true;
+                if (isTracking || isLoading) {
+                    stopTracking();
+                    showToast('Tracking stopped');
+                }
+            }, LONG_PRESS_MS);
+        });
+
+        ['pointerup', 'pointerleave', 'pointercancel'].forEach((evt) => {
+            locateBtn.addEventListener(evt, () => clearTimeout(longPressTimer));
+        });
+
+        locateBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        locateBtn.addEventListener('click', () => {
+            if (longPressed) {
+                longPressed = false;
+                return;
+            }
+            if (isLoading) return;
+            if (isTracking && userMarker) {
+                map.setView(userMarker.getLatLng(), LOCATE_ZOOM);
+            } else {
+                startTracking();
+            }
+        });
     </script>
 @endsection
