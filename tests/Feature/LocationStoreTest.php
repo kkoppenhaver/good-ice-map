@@ -88,7 +88,7 @@ class LocationStoreTest extends TestCase
                 'address' => '152 W 26th St, New York, NY 10001, USA',
                 'image' => UploadedFile::fake()->image('ice.jpg'),
             ])
-            ->assertRedirect("/locations/{$existing->id}")
+            ->assertRedirect(route('locations.show', $existing))
             ->assertSessionHas('success');
 
         $this->assertSame(1, Location::count());
@@ -116,7 +116,7 @@ class LocationStoreTest extends TestCase
                 'address' => '  152 W 26TH ST,  New York, NY 10001, USA  ',
                 'image' => UploadedFile::fake()->image('ice.jpg'),
             ])
-            ->assertRedirect("/locations/{$existing->id}");
+            ->assertRedirect(route('locations.show', $existing));
 
         $this->assertSame(1, Location::count());
     }

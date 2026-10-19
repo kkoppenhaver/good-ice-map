@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminLocationController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RatingController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SlackInteractionController;
 use App\Http\Middleware\VerifySlackSignature;
 use Illuminate\Support\Facades\Route;
@@ -22,8 +23,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/api/parse-maps-link', [LocationController::class, 'parseMapsLink'])->name('api.parse-maps-link');
 });
 
-// Location routes
-Route::resource('locations', LocationController::class)->except(['index']);
+// Sitemap for search engines
+Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
+
+// Location routes ({location} accepts "12" or the canonical "12-some-slug")
+Route::resource('locations', LocationController::class)
+    ->except(['index'])
+    ->where(['location' => '[0-9]+(?:-[A-Za-z0-9-]*)?']);
 
 // Rating routes
 Route::post('/locations/{location}/rate', [RatingController::class, 'store'])->name('locations.rate');

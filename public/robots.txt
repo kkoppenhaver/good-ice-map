@@ -1,2 +1,9 @@
 User-agent: *
-Disallow:
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /locations/create
+Disallow: /api/
+Allow: /
+
+Sitemap: https://goodicemap.com/sitemap.xml

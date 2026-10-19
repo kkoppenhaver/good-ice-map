@@ -66,7 +66,7 @@ class LocationEditTest extends TestCase
                 'name' => 'Updated Name',
                 'description' => 'Updated description',
             ])
-            ->assertRedirect("/locations/{$location->id}");
+            ->assertRedirect(route('locations.show', $location->fresh()));
 
         $location->refresh();
         $this->assertSame('Updated Name', $location->name);

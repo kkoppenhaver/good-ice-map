@@ -156,9 +156,14 @@ class LocationController extends Controller
     /**
      * Display the specified location.
      */
-    public function show(Location $location)
+    public function show(Request $request, Location $location)
     {
         $this->authorize('view', $location);
+
+        // Permanently redirect /locations/12 (or a stale slug) to the canonical slug URL.
+        if ($request->path() !== trim(parse_url($location->url, PHP_URL_PATH), '/')) {
+            return redirect($location->url, 301);
+        }
 
         $location->load(['images', 'ratings.user', 'submittedBy']);
 
