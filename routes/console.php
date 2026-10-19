@@ -11,4 +11,5 @@ Artisan::command('inspire', function () {
 // Monday morning (America/Chicago) summary of the previous week's growth numbers.
 Schedule::command('stats:weekly-digest')
     ->weeklyOn(1, '8:45')
-    ->timezone('America/Chicago');
+    ->timezone('America/Chicago')
+    ->onOneServer();

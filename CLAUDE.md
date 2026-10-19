@@ -51,6 +51,12 @@ Laravel 12 app for discovering and rating "good ice" locations on a map. Brutali
 - **Rating** — unique constraint on (location_id, user_id), 1-5 integer scale
 - **LocationImage** — stores R2 path, has `url` accessor for generating storage URLs
 
+## Deployment
+
+- **Hosted on Laravel Cloud** (production at https://goodicemap.com, `APP_ENV=production`).
+- Scheduled tasks (e.g. `stats:weekly-digest` in `routes/console.php`) only run if the **Scheduler** toggle is enabled on the environment's App compute cluster in the Laravel Cloud dashboard (infrastructure canvas > App cluster > Scheduler > save and redeploy). Laravel Cloud then runs `schedule:run` every minute. Tasks do not run while the environment is hibernating, and tasks should use `->onOneServer()` in case compute is scaled to more than one replica.
+- `robots.txt` is served from a route and emits `Disallow: /` outside production, so `APP_ENV` must be `production` on the live environment.
+
 ## Design System
 
 Brutalist aesthetic — monospace fonts, thick black borders (3-5px), harsh drop shadows (`shadow-brutal`), purple accent (#9333ea), high contrast black/white. Custom Tailwind config in `tailwind.config.js` defines these utilities.
