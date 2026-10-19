@@ -28,6 +28,12 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'nominatim' => [
+        // Reverse geocoding for locations whose address can't be parsed.
+        // Off in tests (phpunit.xml) so nothing reaches the network.
+        'enabled' => (bool) env('NOMINATIM_ENABLED', true),
+    ],
+
     'fathom' => [
         // Public site ID; the script is only rendered in production.
         'site_id' => env('FATHOM_SITE_ID', 'ZIAKTFFD'),

@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Jobs\GeocodeLocation;
+use App\Support\AddressParser;
+use App\Support\ChainMatcher;
 use App\Support\StructuredData;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +21,10 @@ class Location extends Model
         'name',
         'description',
         'address',
+        'city',
+        'state',
+        'country',
+        'chain',
         'google_maps_link',
         'latitude',
         'longitude',
@@ -83,6 +90,24 @@ class Location extends Model
 
     protected static function booted(): void
     {
+        // Derive city/state/country from the address and chain from the name
+        // whenever either changes (or the derived fields are still empty).
+        // (Wrapped in braces: a listener returning false would cancel the save.)
+        static::saving(function (self $location) {
+            $location->deriveGeoFields();
+        });
+
+        // If the address could not be parsed, reverse geocode after the
+        // response is sent. Only on create or an address change, so a failed
+        // lookup cannot re-trigger itself.
+        static::saved(function (self $location) {
+            if ($location->city === null
+                && ($location->wasRecentlyCreated || $location->wasChanged('address'))
+                && $location->latitude !== null && $location->longitude !== null) {
+                GeocodeLocation::dispatch($location)->afterResponse();
+            }
+        });
+
         // Only changes that alter the sitemap bust its cache. Rating updates
         // touch average_rating/total_ratings on every submission and must not.
         static::created(fn () => Cache::forget('sitemap.xml'));
@@ -93,6 +118,63 @@ class Location extends Model
         });
         static::deleted(fn () => Cache::forget('sitemap.xml'));
         static::restored(fn () => Cache::forget('sitemap.xml'));
+    }
+
+    /**
+     * Fill city/state/country from the address and chain from the name.
+     * With $force the derived fields are recomputed even when already set.
+     * Returns true when anything changed.
+     */
+    public function deriveGeoFields(bool $force = false): bool
+    {
+        $before = $this->only(['city', 'state', 'country', 'chain']);
+
+        $geoStale = $force || $this->isDirty('address') || $this->city === null;
+        if ($geoStale && ! ($this->isDirty(['city', 'state', 'country']) && ! $force)) {
+            $parsed = AddressParser::parse($this->address);
+            // Keep a previously geocoded value when the address can't be parsed.
+            if ($parsed['city'] !== null || $this->isDirty('address') || $force) {
+                $this->city = $parsed['city'];
+                $this->state = $parsed['state'];
+                $this->country = $parsed['country'];
+            }
+        }
+
+        if (($force || $this->isDirty('name') || $this->chain === null) && ! ($this->isDirty('chain') && ! $force)) {
+            $this->chain = ChainMatcher::match($this->name);
+        }
+
+        return $before !== $this->only(['city', 'state', 'country', 'chain']);
+    }
+
+    /**
+     * Config entry for this location's chain, if any.
+     */
+    public function chainConfig(): ?array
+    {
+        return $this->chain ? config("chains.{$this->chain}") : null;
+    }
+
+    public function getChainNameAttribute(): ?string
+    {
+        return $this->chainConfig()['name'] ?? null;
+    }
+
+    /**
+     * "New York, NY" style label, or null when the city is unknown.
+     */
+    public function getPlaceLabelAttribute(): ?string
+    {
+        if (! $this->city) {
+            return null;
+        }
+
+        return $this->state ? "{$this->city}, {$this->state}" : $this->city;
+    }
+
+    public function scopeApproved($query)
+    {
+        return $query->where('status', 'approved');
     }
 
     public function isApproved(): bool
