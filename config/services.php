@@ -28,12 +28,19 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'fathom' => [
+        // Public site ID; the script is only rendered in production.
+        'site_id' => env('FATHOM_SITE_ID', 'ZIAKTFFD'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
         'moderation_webhook_url' => env('SLACK_MODERATION_WEBHOOK_URL'),
+        // Weekly stats digest; falls back to the moderation channel.
+        'digest_webhook_url' => env('SLACK_DIGEST_WEBHOOK_URL', env('SLACK_MODERATION_WEBHOOK_URL')),
         'signing_secret' => env('SLACK_SIGNING_SECRET'),
     ],
 

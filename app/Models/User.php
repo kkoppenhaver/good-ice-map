@@ -25,6 +25,11 @@ class User extends Authenticatable
         'google_id',
         'is_admin',
         'email_verified_at',
+        'signup_source',
+        'signup_medium',
+        'signup_campaign',
+        'signup_referrer',
+        'signup_landing_page',
     ];
 
     /**

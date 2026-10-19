@@ -24,6 +24,12 @@
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
+        @if (config('services.fathom.site_id') && app()->environment('production'))
+            <!-- Fathom - beautiful, simple website analytics -->
+            <script src="https://cdn.usefathom.com/script.js" data-site="{{ config('services.fathom.site_id') }}" defer></script>
+            <!-- / Fathom -->
+        @endif
+
         @yield('head')
         @stack('head-scripts')
     </head>
@@ -31,5 +37,14 @@
         @yield('body')
 
         @stack('scripts')
+
+        @if (session('fathom_event'))
+            {{-- Conversion event flashed by the previous request (signup, submission, rating). --}}
+            <script>
+                window.addEventListener('load', function () {
+                    if (window.fathom) { window.fathom.trackEvent(@json(session('fathom_event'))); }
+                });
+            </script>
+        @endif
     </body>
 </html>

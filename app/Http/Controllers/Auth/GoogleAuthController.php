@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\SignupAttribution;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -14,7 +16,7 @@ class GoogleAuthController extends Controller
         return Socialite::driver('google')->redirect();
     }
 
-    public function callback()
+    public function callback(Request $request, SignupAttribution $attribution)
     {
         try {
             $googleUser = Socialite::driver('google')->user();
@@ -37,10 +39,14 @@ class GoogleAuthController extends Controller
                 'google_id' => $googleUser->getId(),
                 'email_verified_at' => now(),
             ]);
+            $attribution->apply($user, $request);
+            $isNew = true;
         }
 
         Auth::login($user, remember: true);
 
-        return redirect()->intended(route('dashboard'));
+        $response = redirect()->intended(route('dashboard'));
+
+        return ($isNew ?? false) ? $response->with('fathom_event', 'signup') : $response;
     }
 }

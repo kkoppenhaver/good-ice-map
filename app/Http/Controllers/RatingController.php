@@ -27,14 +27,16 @@ class RatingController extends Controller
             ],
             [
                 'rating' => $validated['rating'],
-                'review' => $validated['review'],
+                'review' => $validated['review'] ?? null,
             ]
         );
 
         // Update location's average rating
         $this->updateLocationRating($location);
 
-        return back()->with('success', 'Rating submitted successfully!');
+        return back()
+            ->with('success', 'Rating submitted successfully!')
+            ->with('fathom_event', 'rating_submitted');
     }
 
     private function updateLocationRating(Location $location)

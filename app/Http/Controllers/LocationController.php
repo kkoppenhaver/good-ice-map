@@ -150,7 +150,8 @@ class LocationController extends Controller
         $notifier->notifyPending($location);
 
         return redirect()->route('dashboard')
-            ->with('success', "Submitted! It'll appear on the map after a quick review.");
+            ->with('success', "Submitted! It'll appear on the map after a quick review.")
+            ->with('fathom_event', 'location_submitted');
     }
 
     /**
