@@ -38,8 +38,16 @@ class StructuredData
         ];
     }
 
+    /**
+     * Encode for embedding inside a <script> tag. The JSON_HEX_* flags turn
+     * "<", ">", "&", and quotes into \uXXXX escapes so user-submitted text
+     * can never close the script block early.
+     */
     public static function toJson(array $data): string
     {
-        return json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        return json_encode(
+            $data,
+            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT,
+        );
     }
 }

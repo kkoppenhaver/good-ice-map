@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminLocationController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RatingController;
+use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SlackInteractionController;
 use App\Http\Middleware\VerifySlackSignature;
@@ -23,7 +24,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/api/parse-maps-link', [LocationController::class, 'parseMapsLink'])->name('api.parse-maps-link');
 });
 
-// Sitemap for search engines
+// Crawler files (robots.txt is a route so the sitemap URL follows APP_URL
+// and non-production environments are kept out of the index)
+Route::get('/robots.txt', RobotsController::class)->name('robots');
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
 // Location routes ({location} accepts "12" or the canonical "12-some-slug")

@@ -26,13 +26,14 @@ class ScrapeCityByName extends Command
             }
         }
 
-        if (!$cityKey) {
+        if (! $cityKey) {
             $this->error("City '{$cityName}' not found in database.");
             $this->newLine();
-            $this->info("Available cities:");
+            $this->info('Available cities:');
             foreach (array_keys($cities) as $city) {
                 $this->line("  - {$city}");
             }
+
             return 1;
         }
 
@@ -46,13 +47,13 @@ class ScrapeCityByName extends Command
         $autoApprove = $this->option('auto-approve');
         $dryRun = $this->option('dry-run');
 
-        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         $this->info("🏙️  Scraping: {$cityKey}, {$state}");
-        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         $this->line("   Coordinates: {$lat}, {$lng}");
-        $this->line("   Radius: {$radius}m (~" . round($radius / 1609, 1) . " miles)");
+        $this->line("   Radius: {$radius}m (~".round($radius / 1609, 1).' miles)');
         $this->line("   Min ice score: {$minScore}");
-        $this->line("   Auto-approve: " . ($autoApprove ? 'Yes' : 'No'));
+        $this->line('   Auto-approve: '.($autoApprove ? 'Yes' : 'No'));
         $this->newLine();
 
         if ($dryRun) {
@@ -60,8 +61,9 @@ class ScrapeCityByName extends Command
             $this->newLine();
         }
 
-        if (!$dryRun && !$this->confirm('Proceed with scraping? This will use ~60-100 API searches.', true)) {
+        if (! $dryRun && ! $this->confirm('Proceed with scraping? This will use ~60-100 API searches.', true)) {
             $this->info('Cancelled.');
+
             return 0;
         }
 
@@ -73,12 +75,12 @@ class ScrapeCityByName extends Command
             'gas station',       // Gas stations (many have fountain drinks)
             'convenience store', // 7-Eleven, Circle K, Wawa, etc.
         ];
-        
-        $this->info("   Searching " . count($types) . " business types for ice mentions...");
+
+        $this->info('   Searching '.count($types).' business types for ice mentions...');
         $results = $scraper->findGoodIceLocations($lat, $lng, $types, $radius);
 
         $this->newLine();
-        $this->info("Found " . count($results) . " locations with ice mentions");
+        $this->info('Found '.count($results).' locations with ice mentions');
         $this->newLine();
 
         $saved = 0;
@@ -88,6 +90,7 @@ class ScrapeCityByName extends Command
         foreach ($results as $result) {
             if ($result['ice_score'] < $minScore) {
                 $filtered++;
+
                 continue;
             }
 
@@ -95,24 +98,25 @@ class ScrapeCityByName extends Command
             $this->line("   📍 {$result['address']}");
             $this->line("   🏢 Type: {$result['business_type']}");
             $this->line("   ⭐ Rating: {$result['rating']} ({$result['reviews_count']} reviews)");
-            
+
             // Show matched reviews for debugging
             if (isset($result['matched_reviews']) && count($result['matched_reviews']) > 0) {
-                $this->line("   💬 Matched Reviews:");
+                $this->line('   💬 Matched Reviews:');
                 foreach ($result['matched_reviews'] as $idx => $review) {
                     $num = $idx + 1;
                     $this->line("      #{$num} Keyword: \"{$review['keyword']}\"");
-                    $snippet = strlen($review['snippet']) > 120 
-                        ? substr($review['snippet'], 0, 120) . '...' 
+                    $snippet = strlen($review['snippet']) > 120
+                        ? substr($review['snippet'], 0, 120).'...'
                         : $review['snippet'];
-                    $this->line("         \"" . $snippet . "\"");
+                    $this->line('         "'.$snippet.'"');
                 }
             }
 
             if ($dryRun) {
-                $this->line("   [DRY RUN] Would save this location");
+                $this->line('   [DRY RUN] Would save this location');
                 $this->newLine();
                 $saved++;
+
                 continue;
             }
 
@@ -120,9 +124,10 @@ class ScrapeCityByName extends Command
             if ($result['place_id']) {
                 $existing = Location::where('place_id', $result['place_id'])->first();
                 if ($existing) {
-                    $this->line("   ⏭️  Already exists - skipping");
+                    $this->line('   ⏭️  Already exists - skipping');
                     $this->newLine();
                     $skipped++;
+
                     continue;
                 }
             }
@@ -148,29 +153,29 @@ class ScrapeCityByName extends Command
                 $this->newLine();
                 $saved++;
             } catch (\Exception $e) {
-                $this->error("   ❌ Failed to save: " . $e->getMessage());
+                $this->error('   ❌ Failed to save: '.$e->getMessage());
                 $this->newLine();
             }
         }
 
-        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         $this->info("📊 Summary for {$cityKey}, {$state}");
-        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        $this->line("   Total found: " . count($results));
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        $this->line('   Total found: '.count($results));
         $this->line("   Filtered (score < {$minScore}): {$filtered}");
         $this->line("   Saved: {$saved}");
         $this->line("   Skipped (duplicates): {$skipped}");
         $this->newLine();
 
-        if (!$dryRun && $saved > 0) {
+        if (! $dryRun && $saved > 0) {
             $this->info("🎉 Successfully scraped {$saved} new locations from {$cityKey}!");
-            if (!$autoApprove) {
+            if (! $autoApprove) {
                 $this->newLine();
-                $this->warn("⚠️  Locations are PENDING approval.");
-                $this->info("To approve all from this city:");
+                $this->warn('⚠️  Locations are PENDING approval.');
+                $this->info('To approve all from this city:');
                 $this->line("   UPDATE locations SET status = 'approved' WHERE source = 'scraped' AND status = 'pending';");
             }
-        } elseif (!$dryRun && $saved === 0) {
+        } elseif (! $dryRun && $saved === 0) {
             $this->warn("No new locations found in {$cityKey}.");
             if ($skipped > 0) {
                 $this->info("All {$skipped} locations already exist in database.");

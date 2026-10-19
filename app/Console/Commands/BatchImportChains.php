@@ -73,16 +73,16 @@ class BatchImportChains extends Command
         $delay = (int) $this->option('delay');
         $dryRun = $this->option('dry-run');
 
-        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        $this->info("🧊 Batch Chain Import");
-        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        $this->line("   Cities: " . count($this->cities));
-        $this->line("   Chain filter: " . ($chain ?: 'All chains'));
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        $this->info('🧊 Batch Chain Import');
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        $this->line('   Cities: '.count($this->cities));
+        $this->line('   Chain filter: '.($chain ?: 'All chains'));
         $this->line("   Delay between cities: {$delay} seconds");
         $this->newLine();
 
         if ($dryRun) {
-            $this->warn("⚠️  DRY RUN MODE - No data will be saved");
+            $this->warn('⚠️  DRY RUN MODE - No data will be saved');
             $this->newLine();
         }
 
@@ -91,9 +91,9 @@ class BatchImportChains extends Command
 
         foreach ($this->cities as $index => $city) {
             $cityNum = $index + 1;
-            $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             $this->info("📍 [{$cityNum}/{$totalCities}] Importing: {$city}");
-            $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
             $args = [
                 '--city' => $city,
@@ -128,14 +128,14 @@ class BatchImportChains extends Command
         }
 
         $this->newLine();
-        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        $this->info("📊 Batch Import Complete");
-        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        $this->info('📊 Batch Import Complete');
+        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         $this->line("   Total cities processed: {$totalCities}");
         $this->line("   Total locations imported: {$totalImported}");
         $this->newLine();
 
-        if (!$dryRun && $totalImported > 0) {
+        if (! $dryRun && $totalImported > 0) {
             $this->info("🎉 Successfully imported {$totalImported} locations across {$totalCities} cities!");
         }
 

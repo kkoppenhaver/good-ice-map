@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class Location extends Model
@@ -30,8 +31,6 @@ class Location extends Model
         'ice_score',
         'business_type',
     ];
-
-    protected $appends = ['url'];
 
     protected $casts = [
         'latitude' => 'decimal:8',
@@ -67,18 +66,28 @@ class Location extends Model
     }
 
     /**
-     * Accept both "/locations/12" and "/locations/12-any-slug"; the leading
-     * integer is what identifies the record, the slug is cosmetic.
+     * Accept both "/locations/12" and "/locations/12-any-slug": the leading
+     * integer identifies the record and the slug is cosmetic. The route's
+     * where() constraint guarantees the value starts with digits. An explicit
+     * $field (e.g. {location:place_id} or a scoped binding) falls back to the
+     * default column lookup.
      */
-    public function resolveRouteBinding($value, $field = null): ?self
+    public function resolveRouteBinding($value, $field = null): ?Model
     {
-        $id = (int) $value;
-
-        if ($id <= 0 || ! preg_match('/^\d+(?:-.*)?$/', (string) $value)) {
-            return null;
+        if ($field !== null) {
+            return parent::resolveRouteBinding($value, $field);
         }
 
-        return $this->where('id', $id)->first();
+        return $this->where('id', (int) $value)->first();
+    }
+
+    protected static function booted(): void
+    {
+        // Any change (status, name, soft delete) can alter the sitemap.
+        $bust = fn () => Cache::forget('sitemap.xml');
+
+        static::saved($bust);
+        static::deleted($bust);
     }
 
     public function isApproved(): bool

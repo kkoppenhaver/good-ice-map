@@ -12,8 +12,8 @@ class SitemapController extends Controller
     {
         $xml = Cache::remember('sitemap.xml', 3600, function () {
             $entries = [
-                ['loc' => route('home'), 'changefreq' => 'daily', 'priority' => '1.0'],
-                ['loc' => route('map'), 'changefreq' => 'daily', 'priority' => '0.9'],
+                ['loc' => route('home')],
+                ['loc' => route('map')],
             ];
 
             Location::query()
@@ -23,8 +23,6 @@ class SitemapController extends Controller
                     $entries[] = [
                         'loc' => $location->url,
                         'lastmod' => $location->updated_at?->toAtomString(),
-                        'changefreq' => 'weekly',
-                        'priority' => '0.7',
                     ];
                 });
 

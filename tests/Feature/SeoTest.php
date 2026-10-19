@@ -145,8 +145,117 @@ class SeoTest extends TestCase
             ->assertSee('<meta name="description"', false);
     }
 
-    public function test_robots_txt_points_to_sitemap(): void
+    public function test_robots_txt_points_to_sitemap_in_production(): void
     {
-        $this->assertStringContainsString('Sitemap: ', file_get_contents(public_path('robots.txt')));
+        $this->app->detectEnvironment(fn () => 'production');
+
+        $this->get('/robots.txt')
+            ->assertOk()
+            ->assertHeader('Content-Type', 'text/plain; charset=UTF-8')
+            ->assertSee('Sitemap: '.route('sitemap'), false)
+            ->assertSee("Disallow: /admin\n", false)
+            ->assertDontSee("Disallow: /\n", false);
+    }
+
+    public function test_robots_txt_blocks_everything_outside_production(): void
+    {
+        $this->get('/robots.txt')
+            ->assertOk()
+            ->assertSee("Disallow: /\n", false)
+            ->assertDontSee('Sitemap:', false);
+    }
+
+    public function test_json_ld_cannot_break_out_of_script_tag(): void
+    {
+        $payload = '</script><script>alert(1)</script>';
+        $location = $this->makeLocation([
+            'name' => 'Evil '.$payload,
+            'address' => 'Addr '.$payload,
+            'description' => 'Desc '.$payload,
+        ]);
+
+        $response = $this->get($location->url)->assertOk();
+
+        $this->assertStringNotContainsString($payload, $response->getContent());
+        $this->assertStringNotContainsString('<script>alert', $response->getContent());
+
+        // The encoded form must still decode back to the original text.
+        preg_match_all('#<script type="application/ld\+json">(.*?)</script>#s', $response->getContent(), $m);
+        $this->assertCount(2, $m[1]);
+        $this->assertSame('Evil '.$payload, json_decode($m[1][0], true)['name']);
+    }
+
+    public function test_redirect_preserves_query_string(): void
+    {
+        $location = $this->makeLocation();
+
+        $this->get("/locations/{$location->id}?utm_source=reddit&utm_campaign=ice")
+            ->assertStatus(301)
+            ->assertRedirect($location->url.'?utm_source=reddit&utm_campaign=ice');
+    }
+
+    public function test_soft_deleted_location_404s_on_both_url_forms(): void
+    {
+        $location = $this->makeLocation();
+        $url = $location->url;
+        $location->delete();
+
+        $this->get("/locations/{$location->id}")->assertNotFound();
+        $this->get($url)->assertNotFound();
+    }
+
+    public function test_name_that_slugifies_to_nothing_falls_back(): void
+    {
+        $location = $this->makeLocation(['name' => '???']);
+
+        $this->assertSame('location', $location->slug);
+        $this->assertSame(url("/locations/{$location->id}-location"), $location->url);
+        $this->get($location->url)->assertOk();
+    }
+
+    public function test_update_and_delete_work_against_slug_route_key(): void
+    {
+        $owner = User::factory()->create();
+        $location = $this->makeLocation(['submitted_by' => $owner->id]);
+
+        $this->actingAs($owner)
+            ->patch($location->url, ['name' => 'Renamed Spot'])
+            ->assertRedirect(route('locations.show', $location->fresh()));
+        $this->assertSame('Renamed Spot', $location->fresh()->name);
+
+        $this->actingAs($owner)
+            ->delete($location->fresh()->url)
+            ->assertRedirect();
+        $this->assertSoftDeleted('locations', ['id' => $location->id]);
+    }
+
+    public function test_pending_location_sends_x_robots_tag_header(): void
+    {
+        $owner = User::factory()->create();
+        $location = $this->makeLocation(['status' => 'pending', 'submitted_by' => $owner->id]);
+
+        $this->actingAs($owner)
+            ->get($location->url)
+            ->assertOk()
+            ->assertHeader('X-Robots-Tag', 'noindex, nofollow');
+
+        $this->get($this->makeLocation(['name' => 'Fine Spot'])->url)
+            ->assertOk()
+            ->assertHeaderMissing('X-Robots-Tag');
+    }
+
+    public function test_sitemap_cache_is_busted_when_a_location_changes(): void
+    {
+        $location = $this->makeLocation();
+        $this->get('/sitemap.xml')->assertSee($location->url, false);
+
+        $location->update(['status' => 'rejected']);
+        $this->get('/sitemap.xml')->assertDontSee($location->url, false);
+
+        $location->update(['status' => 'approved']);
+        $this->get('/sitemap.xml')->assertSee($location->url, false);
+
+        $location->delete();
+        $this->get('/sitemap.xml')->assertDontSee($location->url, false);
     }
 }

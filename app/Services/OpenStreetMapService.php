@@ -30,10 +30,10 @@ class OpenStreetMapService
      * Search for chain locations across the entire US using OpenStreetMap data.
      * This is FREE and doesn't require any API key.
      *
-     * @param string $brandName The brand to search for
-     * @param string|null $state State abbreviation (e.g., "IL") or full name
-     * @param string|null $city City name (e.g., "Chicago")
-     * @param int $limit Max results to return
+     * @param  string  $brandName  The brand to search for
+     * @param  string|null  $state  State abbreviation (e.g., "IL") or full name
+     * @param  string|null  $city  City name (e.g., "Chicago")
+     * @param  int  $limit  Max results to return
      */
     public function findChainLocations(string $brandName, ?string $state = null, ?string $city = null, int $limit = 1000): array
     {
@@ -78,6 +78,7 @@ OVERPASS;
                 'status' => $response->status(),
                 'body' => substr($response->body(), 0, 500),
             ]);
+
             return [];
         }
 
@@ -90,7 +91,7 @@ OVERPASS;
             $lat = $element['lat'] ?? $element['center']['lat'] ?? null;
             $lon = $element['lon'] ?? $element['center']['lon'] ?? null;
 
-            if (!$lat || !$lon) {
+            if (! $lat || ! $lon) {
                 continue;
             }
 
@@ -98,32 +99,32 @@ OVERPASS;
 
             // Build address from tags
             $addressParts = [];
-            if (!empty($tags['addr:housenumber'])) {
+            if (! empty($tags['addr:housenumber'])) {
                 $addressParts[] = $tags['addr:housenumber'];
             }
-            if (!empty($tags['addr:street'])) {
+            if (! empty($tags['addr:street'])) {
                 $addressParts[] = $tags['addr:street'];
             }
             $streetAddress = implode(' ', $addressParts);
 
             $cityState = [];
-            if (!empty($tags['addr:city'])) {
+            if (! empty($tags['addr:city'])) {
                 $cityState[] = $tags['addr:city'];
             }
-            if (!empty($tags['addr:state'])) {
+            if (! empty($tags['addr:state'])) {
                 $cityState[] = $tags['addr:state'];
             }
-            if (!empty($tags['addr:postcode'])) {
+            if (! empty($tags['addr:postcode'])) {
                 $cityState[] = $tags['addr:postcode'];
             }
 
             $fullAddress = $streetAddress;
-            if (!empty($cityState)) {
-                $fullAddress .= ($streetAddress ? ', ' : '') . implode(', ', $cityState);
+            if (! empty($cityState)) {
+                $fullAddress .= ($streetAddress ? ', ' : '').implode(', ', $cityState);
             }
 
             $locations[] = [
-                'osm_id' => $element['type'] . '/' . $element['id'],
+                'osm_id' => $element['type'].'/'.$element['id'],
                 'name' => $tags['name'] ?? $brandName,
                 'brand' => $tags['brand'] ?? $brandName,
                 'address' => $fullAddress ?: null,
