@@ -6,6 +6,7 @@ use App\Jobs\GeocodeLocation;
 use App\Support\AddressParser;
 use App\Support\ChainMatcher;
 use App\Support\StructuredData;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -16,6 +17,12 @@ use Illuminate\Support\Str;
 class Location extends Model
 {
     use SoftDeletes;
+
+    /**
+     * Guards against dispatching a second geocode job for the same instance
+     * within one request (wasRecentlyCreated stays true after the first save).
+     */
+    public bool $geocodeDispatched = false;
 
     protected $fillable = [
         'name',
@@ -102,8 +109,10 @@ class Location extends Model
         // lookup cannot re-trigger itself.
         static::saved(function (self $location) {
             if ($location->city === null
+                && ! $location->geocodeDispatched
                 && ($location->wasRecentlyCreated || $location->wasChanged('address'))
                 && $location->latitude !== null && $location->longitude !== null) {
+                $location->geocodeDispatched = true;
                 GeocodeLocation::dispatch($location)->afterResponse();
             }
         });
@@ -122,29 +131,67 @@ class Location extends Model
 
     /**
      * Fill city/state/country from the address and chain from the name.
-     * With $force the derived fields are recomputed even when already set.
      * Returns true when anything changed.
+     *
+     * Geo (city/state/country), in order:
+     *  1. $force: always re-parse the address, even over manual or geocoded values.
+     *  2. Any of city/state/country set explicitly in this save: keep them.
+     *  3. Address unchanged and city already known: nothing to do.
+     *  4. Address changed: apply the parse result, nulls included, so a stale
+     *     city never survives a new address (the geocode job then refills it).
+     *  5. Address unchanged and city unknown: apply the parse only if it found
+     *     a city, so a later geocode result is not needed twice.
+     *
+     * Chain, in order:
+     *  1. $force: always re-match the name.
+     *  2. Chain set explicitly in this save: keep it.
+     *  3. Name unchanged and chain already known: nothing to do.
+     *  4. Otherwise match the name (null when it is not a known chain).
      */
     public function deriveGeoFields(bool $force = false): bool
     {
         $before = $this->only(['city', 'state', 'country', 'chain']);
 
-        $geoStale = $force || $this->isDirty('address') || $this->city === null;
-        if ($geoStale && ! ($this->isDirty(['city', 'state', 'country']) && ! $force)) {
-            $parsed = AddressParser::parse($this->address);
-            // Keep a previously geocoded value when the address can't be parsed.
-            if ($parsed['city'] !== null || $this->isDirty('address') || $force) {
-                $this->city = $parsed['city'];
-                $this->state = $parsed['state'];
-                $this->country = $parsed['country'];
-            }
-        }
-
-        if (($force || $this->isDirty('name') || $this->chain === null) && ! ($this->isDirty('chain') && ! $force)) {
-            $this->chain = ChainMatcher::match($this->name);
-        }
+        $this->deriveGeo($force);
+        $this->deriveChain($force);
 
         return $before !== $this->only(['city', 'state', 'country', 'chain']);
+    }
+
+    private function deriveGeo(bool $force): void
+    {
+        if (! $force && $this->isDirty(['city', 'state', 'country'])) {
+            return;
+        }
+
+        $addressChanged = $this->isDirty('address');
+
+        if (! $force && ! $addressChanged && $this->city !== null) {
+            return;
+        }
+
+        $parsed = AddressParser::parse($this->address);
+
+        if (! $force && ! $addressChanged && $parsed['city'] === null) {
+            return;
+        }
+
+        $this->city = $parsed['city'];
+        $this->state = $parsed['state'];
+        $this->country = $parsed['country'];
+    }
+
+    private function deriveChain(bool $force): void
+    {
+        if (! $force && $this->isDirty('chain')) {
+            return;
+        }
+
+        if (! $force && ! $this->isDirty('name') && $this->chain !== null) {
+            return;
+        }
+
+        $this->chain = ChainMatcher::match($this->name);
     }
 
     /**
@@ -172,7 +219,7 @@ class Location extends Model
         return $this->state ? "{$this->city}, {$this->state}" : $this->city;
     }
 
-    public function scopeApproved($query)
+    public function scopeApproved(Builder $query): Builder
     {
         return $query->where('status', 'approved');
     }

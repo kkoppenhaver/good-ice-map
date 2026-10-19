@@ -21,6 +21,9 @@ class AddressParserTest extends TestCase
             'canada without postal code' => ['Circle K, Paul Street, Picton, ON, Canada', 'Picton', 'ON', 'CA'],
             'canada apostrophe in street' => ["18 Snyder's Rd W, Baden, ON N3A 0A7, Canada", 'Baden', 'ON', 'CA'],
             'dc' => ['1600 Pennsylvania Ave NW, Washington, DC 20500, USA', 'Washington', 'DC', 'US'],
+            'full province name' => ['123 King St, Toronto, Ontario, Canada', 'Toronto', 'ON', 'CA'],
+            'full state name no country' => ['500 Main St, Austin, Texas', 'Austin', 'TX', 'US'],
+            'accented province' => ['1 Rue Sainte-Catherine, Montréal, Québec, Canada', 'Montréal', 'QC', 'CA'],
         ];
     }
 

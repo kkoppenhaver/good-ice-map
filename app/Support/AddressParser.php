@@ -24,6 +24,24 @@ class AddressParser
 
     private const CA_PROVINCES = ['AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT'];
 
+    private const STATE_NAMES = [
+        'alabama' => 'AL', 'alaska' => 'AK', 'arizona' => 'AZ', 'arkansas' => 'AR', 'california' => 'CA',
+        'colorado' => 'CO', 'connecticut' => 'CT', 'delaware' => 'DE', 'florida' => 'FL', 'georgia' => 'GA',
+        'hawaii' => 'HI', 'idaho' => 'ID', 'illinois' => 'IL', 'indiana' => 'IN', 'iowa' => 'IA', 'kansas' => 'KS',
+        'kentucky' => 'KY', 'louisiana' => 'LA', 'maine' => 'ME', 'maryland' => 'MD', 'massachusetts' => 'MA',
+        'michigan' => 'MI', 'minnesota' => 'MN', 'mississippi' => 'MS', 'missouri' => 'MO', 'montana' => 'MT',
+        'nebraska' => 'NE', 'nevada' => 'NV', 'new hampshire' => 'NH', 'new jersey' => 'NJ', 'new mexico' => 'NM',
+        'new york' => 'NY', 'north carolina' => 'NC', 'north dakota' => 'ND', 'ohio' => 'OH', 'oklahoma' => 'OK',
+        'oregon' => 'OR', 'pennsylvania' => 'PA', 'rhode island' => 'RI', 'south carolina' => 'SC',
+        'south dakota' => 'SD', 'tennessee' => 'TN', 'texas' => 'TX', 'utah' => 'UT', 'vermont' => 'VT',
+        'virginia' => 'VA', 'washington' => 'WA', 'west virginia' => 'WV', 'wisconsin' => 'WI', 'wyoming' => 'WY',
+        'district of columbia' => 'DC', 'puerto rico' => 'PR',
+        'alberta' => 'AB', 'british columbia' => 'BC', 'manitoba' => 'MB', 'new brunswick' => 'NB',
+        'newfoundland and labrador' => 'NL', 'nova scotia' => 'NS', 'northwest territories' => 'NT',
+        'nunavut' => 'NU', 'ontario' => 'ON', 'prince edward island' => 'PE', 'quebec' => 'QC',
+        'québec' => 'QC', 'saskatchewan' => 'SK', 'yukon' => 'YT',
+    ];
+
     /**
      * @return array{city: ?string, state: ?string, country: ?string}
      */
@@ -45,12 +63,15 @@ class AddressParser
             return $none;
         }
 
-        // The last remaining part is "ST" or "ST 12345" / "ON M4S 2L5".
-        if (! preg_match('/^([A-Za-z]{2})(?:\s+[A-Za-z0-9][A-Za-z0-9 -]{2,10})?$/', end($parts), $m)) {
+        // The last remaining part is "ST", "ST 12345", "ON M4S 2L5" or a full name like "Ontario".
+        $region = end($parts);
+        if (preg_match('/^([A-Za-z]{2})(?:\s+[A-Za-z0-9][A-Za-z0-9 -]{2,10})?$/', $region, $m)) {
+            $state = strtoupper($m[1]);
+        } elseif (isset(self::STATE_NAMES[mb_strtolower($region)])) {
+            $state = self::STATE_NAMES[mb_strtolower($region)];
+        } else {
             return $none;
         }
-
-        $state = strtoupper($m[1]);
 
         if ($country === null) {
             $country = in_array($state, self::US_STATES, true) ? 'US'

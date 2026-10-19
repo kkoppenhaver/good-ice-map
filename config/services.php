@@ -32,6 +32,10 @@ return [
         // Reverse geocoding for locations whose address can't be parsed.
         // Off in tests (phpunit.xml) so nothing reaches the network.
         'enabled' => (bool) env('NOMINATIM_ENABLED', true),
+        // Nominatim's policy asks for an identifying User-Agent with a contact.
+        'user_agent' => env('NOMINATIM_USER_AGENT', 'GoodIceMap/1.0 (https://goodicemap.com)'),
+        // Minimum spacing between requests, shared across processes (policy: 1/sec).
+        'min_interval_ms' => (int) env('NOMINATIM_MIN_INTERVAL_MS', 1000),
     ],
 
     'fathom' => [

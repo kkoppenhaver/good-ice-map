@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Exceptions\GeocodingUnavailableException;
 use App\Jobs\GeocodeLocation;
 use App\Models\Location;
 use App\Models\User;
@@ -86,11 +87,11 @@ class LocationGeoTest extends TestCase
         Http::assertSentCount(1);
     }
 
-    public function test_geocode_failure_leaves_row_untouched_and_does_not_loop(): void
+    public function test_geocode_no_result_leaves_row_untouched_and_does_not_loop(): void
     {
         Bus::fake();
         config(['services.nominatim.enabled' => true]);
-        Http::fake([ReverseGeocoder::ENDPOINT.'*' => Http::response('', 500)]);
+        Http::fake([ReverseGeocoder::ENDPOINT.'*' => Http::response(['error' => 'Unable to geocode'], 404)]);
         $location = $this->make(['address' => 'Somewhere unparseable']);
 
         (new GeocodeLocation($location))->handle(app(ReverseGeocoder::class));
@@ -150,7 +151,7 @@ class LocationGeoTest extends TestCase
         Location::query()->update(['city' => null, 'state' => null, 'country' => null, 'chain' => null]);
         $this->nominatim(['city' => 'Chicago', 'ISO3166-2-lvl4' => 'US-IL', 'country_code' => 'us']);
 
-        $this->artisan('locations:derive-geo --geocode --delay=0')
+        $this->artisan('locations:derive-geo --geocode')
             ->expectsOutputToContain('Parsed 3 locations, updated 2.')
             ->expectsOutputToContain('Still missing a city: 1.')
             ->expectsOutputToContain('Reverse geocoded 1.')
@@ -159,6 +160,68 @@ class LocationGeoTest extends TestCase
         $this->assertSame(['New York', 'raising-canes'], [$parsed->fresh()->city, $parsed->fresh()->chain]);
         $this->assertSame(['New York', '7-eleven'], [$stale->fresh()->city, $stale->fresh()->chain]);
         $this->assertSame(['Chicago', 'IL', 'US', null], [$unparsed->fresh()->city, $unparsed->fresh()->state, $unparsed->fresh()->country, $unparsed->fresh()->chain]);
+        Http::assertSentCount(1);
+    }
+
+    public function test_only_one_geocode_job_per_instance_within_a_request(): void
+    {
+        Bus::fake();
+        $location = $this->make(['address' => 'Somewhere unparseable']);
+        $location->update(['description' => 'saved again, still no city']);
+        $location->save();
+
+        Bus::assertDispatchedAfterResponseTimes(GeocodeLocation::class, 1);
+    }
+
+    public function test_manual_city_wins_over_address_change_in_same_save(): void
+    {
+        Bus::fake();
+        $location = $this->make();
+
+        $location->update(['address' => '100 Elm St, Tulsa, OK 74103, USA', 'city' => 'Broken Arrow', 'state' => 'OK', 'country' => 'US']);
+
+        $this->assertSame(['Broken Arrow', 'OK'], [$location->city, $location->state]);
+    }
+
+    public function test_geocode_job_skips_missing_model(): void
+    {
+        Bus::fake();
+        Http::fake();
+        $location = $this->make(['address' => 'Somewhere unparseable']);
+        $job = new GeocodeLocation($location);
+        $location->delete();
+
+        $job->handle(app(ReverseGeocoder::class));
+
+        Http::assertNothingSent();
+        $this->assertTrue($job->deleteWhenMissingModels);
+        $this->assertSame(3, $job->tries);
+    }
+
+    public function test_geocode_job_lets_transient_failures_bubble_for_retry(): void
+    {
+        Bus::fake();
+        config(['services.nominatim.enabled' => true]);
+        Http::fake([ReverseGeocoder::ENDPOINT.'*' => Http::response('', 429)]);
+        $location = $this->make(['address' => 'Somewhere unparseable']);
+
+        $this->expectException(GeocodingUnavailableException::class);
+        (new GeocodeLocation($location))->handle(app(ReverseGeocoder::class));
+    }
+
+    public function test_backfill_stops_cleanly_when_nominatim_is_unavailable(): void
+    {
+        Bus::fake();
+        $this->make(['name' => 'Hotel', 'address' => 'Somewhere unparseable']);
+        $this->make(['name' => 'Hotel 2', 'address' => 'Also unparseable']);
+        config(['services.nominatim.enabled' => true]);
+        Http::fake([ReverseGeocoder::ENDPOINT.'*' => Http::response('', 503)]);
+
+        $this->artisan('locations:derive-geo --geocode')
+            ->expectsOutputToContain('stopping; re-run later')
+            ->expectsOutputToContain('Reverse geocoded 0.')
+            ->assertSuccessful();
+
         Http::assertSentCount(1);
     }
 

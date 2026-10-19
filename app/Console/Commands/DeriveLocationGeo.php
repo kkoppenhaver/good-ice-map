@@ -2,16 +2,17 @@
 
 namespace App\Console\Commands;
 
+use App\Exceptions\GeocodingUnavailableException;
 use App\Models\Location;
 use App\Services\ReverseGeocoder;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 
 class DeriveLocationGeo extends Command
 {
     protected $signature = 'locations:derive-geo
                             {--force : Recompute city/state/country/chain even when already set}
-                            {--geocode : Reverse geocode rows whose address could not be parsed}
-                            {--delay=1 : Seconds to wait between geocode requests (Nominatim allows 1/sec)}';
+                            {--geocode : Reverse geocode rows whose address could not be parsed (rate limited by ReverseGeocoder)}';
 
     protected $description = 'Backfill city, state, country and chain on locations from their address and name';
 
@@ -35,11 +36,15 @@ class DeriveLocationGeo extends Command
         $this->line("Still missing a city: {$missing->count()}.");
 
         if ($this->option('geocode')) {
-            $delay = max(0, (int) $this->option('delay'));
             $geocoded = 0;
 
             foreach ($missing->get() as $location) {
-                $result = $geocoder->lookup((float) $location->latitude, (float) $location->longitude);
+                try {
+                    $result = $geocoder->lookup((float) $location->latitude, (float) $location->longitude);
+                } catch (GeocodingUnavailableException $e) {
+                    $this->error("  ! #{$location->id} {$location->name}: {$e->getMessage()} — stopping; re-run later.");
+                    break;
+                }
 
                 if ($result && $result['city']) {
                     $location->forceFill([
@@ -52,12 +57,13 @@ class DeriveLocationGeo extends Command
                 } else {
                     $this->warn("  ✗ #{$location->id} {$location->name}: no result");
                 }
-
-                sleep($delay);
             }
 
             $this->info("Reverse geocoded {$geocoded}.");
         }
+
+        // saveQuietly() skipped the model events that normally clear this.
+        Cache::forget('sitemap.xml');
 
         $this->newLine();
         $this->table(
