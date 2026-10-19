@@ -22,12 +22,12 @@ class TestSerpApi extends Command
         // Test 1: Search for gas stations
         $this->info('1. Searching for gas stations...');
         $gasStations = $scraper->searchBusinesses('gas station', $lat, $lng, 3000);
-        $this->info('Found '.count($gasStations).' gas stations');
-
+        $this->info('Found ' . count($gasStations) . ' gas stations');
+        
         if (count($gasStations) > 0) {
             $first = $gasStations[0];
             $this->line("  Example: {$first['title']}");
-            $this->line('  Address: '.($first['address'] ?? 'N/A'));
+            $this->line("  Address: " . ($first['address'] ?? 'N/A'));
         }
         $this->newLine();
 
@@ -36,21 +36,21 @@ class TestSerpApi extends Command
             $this->info('2. Fetching reviews for first result...');
             $dataId = $gasStations[0]['data_id'];
             $reviews = $scraper->getPlaceReviews($dataId);
-            $this->info('Found '.count($reviews).' reviews');
-
+            $this->info('Found ' . count($reviews) . ' reviews');
+            
             if (count($reviews) > 0) {
-                $this->line('  Example review: '.substr($reviews[0]['snippet'] ?? '', 0, 100).'...');
+                $this->line("  Example review: " . substr($reviews[0]['snippet'] ?? '', 0, 100) . '...');
             }
             $this->newLine();
 
             // Test 3: Filter for ice mentions
             $this->info('3. Filtering for ice-related reviews...');
             $iceReviews = $scraper->filterIceReviews($reviews);
-            $this->info('Found '.count($iceReviews).' ice-related reviews');
-
+            $this->info('Found ' . count($iceReviews) . ' ice-related reviews');
+            
             foreach ($iceReviews as $iceReview) {
                 $this->line("  Matched keyword: '{$iceReview['matched_keyword']}'");
-                $this->line('  Review snippet: '.substr($iceReview['review']['snippet'] ?? '', 0, 150).'...');
+                $this->line("  Review snippet: " . substr($iceReview['review']['snippet'] ?? '', 0, 150) . '...');
                 $this->newLine();
             }
         }
@@ -58,8 +58,8 @@ class TestSerpApi extends Command
         // Test 4: Full search test
         $this->info('4. Running full good ice search (1 business type)...');
         $results = $scraper->findGoodIceLocations($lat, $lng, ['gas station'], 3000);
-
-        $this->info('Found '.count($results).' locations with good ice mentions!');
+        
+        $this->info('Found ' . count($results) . ' locations with good ice mentions!');
         $this->newLine();
 
         foreach ($results as $result) {

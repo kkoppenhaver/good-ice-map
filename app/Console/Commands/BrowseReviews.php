@@ -23,14 +23,13 @@ class BrowseReviews extends Command
         $this->newLine();
 
         $businesses = $scraper->searchBusinesses($query, $lat, $lng, 5000);
-
+        
         if (empty($businesses)) {
-            $this->warn('No businesses found!');
-
+            $this->warn("No businesses found!");
             return 0;
         }
 
-        $this->info('Found '.count($businesses).' businesses');
+        $this->info("Found " . count($businesses) . " businesses");
         $this->newLine();
 
         $checked = 0;
@@ -39,11 +38,11 @@ class BrowseReviews extends Command
                 break;
             }
 
-            if (! isset($business['data_id'])) {
+            if (!isset($business['data_id'])) {
                 continue;
             }
 
-            $this->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             $this->info("📍 {$business['title']}");
             $address = $business['address'] ?? 'No address';
             $this->line("   {$address}");
@@ -51,16 +50,15 @@ class BrowseReviews extends Command
             $this->newLine();
 
             $reviews = $scraper->getPlaceReviews($business['data_id']);
-
+            
             if (empty($reviews)) {
-                $this->line('   No reviews available');
+                $this->line("   No reviews available");
                 $this->newLine();
                 $checked++;
-
                 continue;
             }
 
-            $this->line('   💬 Sample Reviews:');
+            $this->line("   💬 Sample Reviews:");
             foreach (array_slice($reviews, 0, 3) as $idx => $review) {
                 $num = $idx + 1;
                 $rating = $review['rating'] ?? 'N/A';

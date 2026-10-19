@@ -26,9 +26,8 @@ class ScrapeChains extends Command
             }
         }
 
-        if (! $cityKey) {
+        if (!$cityKey) {
             $this->error("City '{$cityName}' not found.");
-
             return 1;
         }
 
@@ -43,19 +42,19 @@ class ScrapeChains extends Command
         // Get chains to search
         $allChains = config('ice_chains');
         $requestedChains = $this->option('chains');
-
-        if (! empty($requestedChains)) {
+        
+        if (!empty($requestedChains)) {
             $chains = array_intersect_key($allChains, array_flip($requestedChains));
         } else {
             $chains = $allChains;
         }
 
-        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         $this->info("🏪 Scraping Chains in {$cityKey}, {$state}");
-        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         $this->line("   Coordinates: {$lat}, {$lng}");
-        $this->line("   Radius: {$radius}m (~".round($radius / 1609, 1).' miles)');
-        $this->line('   Chains to search: '.count($chains));
+        $this->line("   Radius: {$radius}m (~" . round($radius / 1609, 1) . " miles)");
+        $this->line("   Chains to search: " . count($chains));
         $this->newLine();
 
         if ($dryRun) {
@@ -63,7 +62,7 @@ class ScrapeChains extends Command
             $this->newLine();
         }
 
-        if (! $dryRun && ! $this->confirm('Proceed? This will use ~'.count($chains).' API searches.', true)) {
+        if (!$dryRun && !$this->confirm('Proceed? This will use ~' . count($chains) . ' API searches.', true)) {
             return 0;
         }
 
@@ -75,23 +74,22 @@ class ScrapeChains extends Command
 
         foreach ($chains as $chainName => $chainInfo) {
             $this->info("Searching for: {$chainName}");
-
+            
             $businesses = $scraper->searchBusinesses($chainName, $lat, $lng, $radius);
             $found = count($businesses);
             $totalFound += $found;
-
+            
             $this->line("   Found {$found} locations");
 
             foreach ($businesses as $business) {
                 $name = $business['title'];
                 $address = $business['address'] ?? 'No address';
                 $rating = $business['rating'] ?? 'N/A';
-
+                
                 // Fetch reviews and check for ice mentions
                 $dataId = $business['data_id'] ?? null;
-                if (! $dataId) {
+                if (!$dataId) {
                     $this->line("   ⏭️  {$name} - No data_id, skipping");
-
                     continue;
                 }
 
@@ -102,12 +100,11 @@ class ScrapeChains extends Command
                 // Skip if no ice mentions
                 if ($iceScore === 0) {
                     $this->line("   ⏭️  {$name} - No ice mentions in reviews");
-
                     continue;
                 }
 
                 $this->line("   📍 {$name} - {$address} ({$rating}★) [Ice Score: {$iceScore}]");
-
+                
                 // Show matched reviews
                 foreach (array_slice($filteredReviews, 0, 2) as $idx => $match) {
                     $snippet = substr($match['review']['snippet'] ?? '', 0, 80);
@@ -115,9 +112,8 @@ class ScrapeChains extends Command
                 }
 
                 if ($dryRun) {
-                    $this->line('      [DRY RUN] Would save');
+                    $this->line("      [DRY RUN] Would save");
                     $saved++;
-
                     continue;
                 }
 
@@ -126,9 +122,8 @@ class ScrapeChains extends Command
                 if ($placeId) {
                     $existing = Location::where('place_id', $placeId)->first();
                     if ($existing) {
-                        $this->line('      ⏭️  Already exists');
+                        $this->line("      ⏭️  Already exists");
                         $skipped++;
-
                         continue;
                     }
                 }
@@ -154,22 +149,22 @@ class ScrapeChains extends Command
                     $this->line("      ✅ Saved (ID: {$location->id})");
                     $saved++;
                 } catch (\Exception $e) {
-                    $this->error('      ❌ Failed: '.$e->getMessage());
+                    $this->error("      ❌ Failed: " . $e->getMessage());
                 }
             }
             $this->newLine();
         }
 
-        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         $this->info("📊 Summary for {$cityKey}, {$state}");
-        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        $this->line('   Chains searched: '.count($chains));
+        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->line("   Chains searched: " . count($chains));
         $this->line("   Locations found: {$totalFound}");
         $this->line("   Saved: {$saved}");
         $this->line("   Skipped (duplicates): {$skipped}");
         $this->newLine();
 
-        if (! $dryRun && $saved > 0) {
+        if (!$dryRun && $saved > 0) {
             $this->info("🎉 Added {$saved} chain locations!");
         }
 

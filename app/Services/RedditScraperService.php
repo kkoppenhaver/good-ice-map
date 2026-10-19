@@ -38,7 +38,7 @@ class RedditScraperService
     {
         try {
             $url = "https://www.reddit.com/r/{$subreddit}/search.json";
-
+            
             $response = Http::timeout(30)
                 ->withHeaders(['User-Agent' => 'GoodIceMap/1.0'])
                 ->get($url, [
@@ -54,7 +54,6 @@ class RedditScraperService
                     'subreddit' => $subreddit,
                     'query' => $query,
                 ]);
-
                 return [];
             }
 
@@ -66,7 +65,7 @@ class RedditScraperService
                 $posts[] = [
                     'title' => $post['title'],
                     'selftext' => $post['selftext'] ?? '',
-                    'url' => 'https://reddit.com'.$post['permalink'],
+                    'url' => 'https://reddit.com' . $post['permalink'],
                     'author' => $post['author'],
                     'subreddit' => $post['subreddit'],
                     'score' => $post['score'],
@@ -80,7 +79,6 @@ class RedditScraperService
 
         } catch (\Exception $e) {
             Log::error('Reddit API error', ['message' => $e->getMessage()]);
-
             return [];
         }
     }
@@ -92,7 +90,7 @@ class RedditScraperService
     {
         try {
             $url = "https://www.reddit.com{$permalink}.json";
-
+            
             $response = Http::timeout(30)
                 ->withHeaders(['User-Agent' => 'GoodIceMap/1.0'])
                 ->get($url);
@@ -121,7 +119,6 @@ class RedditScraperService
 
         } catch (\Exception $e) {
             Log::error('Reddit comments error', ['message' => $e->getMessage()]);
-
             return [];
         }
     }
@@ -135,7 +132,7 @@ class RedditScraperService
 
         // Common chain patterns
         $chains = [
-            'Sonic', 'QuikTrip', 'QT', 'Buc-ee\'s', 'Bucees', 'Sheetz',
+            'Sonic', 'QuikTrip', 'QT', 'Buc-ee\'s', 'Bucees', 'Sheetz', 
             'Wawa', 'RaceTrac', '7-Eleven', 'Circle K', 'Chick-fil-A',
             'Raising Cane\'s', 'Canes', 'Jimmy John\'s', 'Whataburger',
         ];
@@ -149,7 +146,7 @@ class RedditScraperService
         // City/state patterns (simplified)
         if (preg_match_all('/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),?\s+([A-Z]{2})\b/', $text, $matches)) {
             for ($i = 0; $i < count($matches[0]); $i++) {
-                $locations[] = $matches[1][$i].', '.$matches[2][$i];
+                $locations[] = $matches[1][$i] . ', ' . $matches[2][$i];
             }
         }
 

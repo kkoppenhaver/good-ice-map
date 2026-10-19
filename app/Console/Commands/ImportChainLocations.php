@@ -86,55 +86,53 @@ class ImportChainLocations extends Command
             $chainsToImport = $this->goodIceChains;
         } elseif ($chainOption) {
             $chainKey = strtolower($chainOption);
-            if (! isset($this->goodIceChains[$chainKey])) {
+            if (!isset($this->goodIceChains[$chainKey])) {
                 $this->error("Unknown chain: {$chainOption}");
                 $this->newLine();
-                $this->info('Available chains:');
+                $this->info("Available chains:");
                 foreach ($this->goodIceChains as $key => $chain) {
                     $this->line("  - {$key} ({$chain['display_name']}) - {$chain['ice_type']} ice");
                 }
-
                 return 1;
             }
             $chainsToImport[$chainKey] = $this->goodIceChains[$chainKey];
         } else {
-            $this->error('Please specify --chain=<name> or --all');
+            $this->error("Please specify --chain=<name> or --all");
             $this->newLine();
-            $this->info('Available chains:');
+            $this->info("Available chains:");
             foreach ($this->goodIceChains as $key => $chain) {
                 $this->line("  - {$key} ({$chain['display_name']}) - {$chain['ice_type']} ice");
             }
-
             return 1;
         }
 
         // Determine if we need to loop through states
-        $loopStates = ! $state && ! $city;
+        $loopStates = !$state && !$city;
         $statesToProcess = $loopStates ? $this->allStates : [$state];
 
         // Build location filter display
         $locationFilter = 'All US (looping through states)';
         if ($city) {
-            $locationFilter = $city.($state ? ", {$state}" : '');
+            $locationFilter = $city . ($state ? ", {$state}" : '');
             $statesToProcess = [null]; // Single pass with city filter
         } elseif ($state) {
             $locationFilter = $state;
         }
 
-        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        $this->info('🧊 Chain Import - OpenStreetMap (FREE)');
-        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        $this->line('   Chains: '.count($chainsToImport));
-        $this->line('   Location filter: '.$locationFilter);
+        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->info("🧊 Chain Import - OpenStreetMap (FREE)");
+        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->line("   Chains: " . count($chainsToImport));
+        $this->line("   Location filter: " . $locationFilter);
         if ($loopStates) {
-            $this->line('   States to process: '.count($this->allStates));
+            $this->line("   States to process: " . count($this->allStates));
             $this->line("   Delay between states: {$delay} seconds");
         }
-        $this->line('   Data source: OpenStreetMap (free, no API key)');
+        $this->line("   Data source: OpenStreetMap (free, no API key)");
         $this->newLine();
 
         if ($dryRun) {
-            $this->warn('⚠️  DRY RUN MODE - No data will be saved');
+            $this->warn("⚠️  DRY RUN MODE - No data will be saved");
             $this->newLine();
         }
 
@@ -145,9 +143,9 @@ class ImportChainLocations extends Command
 
         foreach ($chainsToImport as $chainKey => $chainInfo) {
             $this->newLine();
-            $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             $this->info("🏪 Importing: {$chainInfo['display_name']} ({$chainInfo['ice_type']} ice)");
-            $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
             $chainSaved = 0;
             $chainSkipped = 0;
@@ -160,7 +158,7 @@ class ImportChainLocations extends Command
                 if ($loopStates) {
                     $this->line("   [{$stateNum}/{$stateCount}] Querying {$currentState}...");
                 } else {
-                    $this->line('   Querying OpenStreetMap...');
+                    $this->line("   Querying OpenStreetMap...");
                 }
 
                 try {
@@ -170,7 +168,7 @@ class ImportChainLocations extends Command
                     $totalFound += $found;
 
                     if ($found > 0) {
-                        $this->line("   Found {$found} locations".($loopStates ? " in {$currentState}" : ''));
+                        $this->line("   Found {$found} locations" . ($loopStates ? " in {$currentState}" : ""));
                     }
 
                     foreach ($locations as $loc) {
@@ -187,7 +185,7 @@ class ImportChainLocations extends Command
                 } catch (\Exception $e) {
                     $totalErrors++;
                     $stateLabel = $currentState ?: 'query';
-                    $this->warn("   ⚠️  Error querying {$stateLabel}: ".class_basename($e));
+                    $this->warn("   ⚠️  Error querying {$stateLabel}: " . class_basename($e));
                 }
 
                 // Delay between states (except for the last one)
@@ -200,9 +198,9 @@ class ImportChainLocations extends Command
         }
 
         $this->newLine();
-        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        $this->info('📊 Import Complete');
-        $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->info("📊 Import Complete");
+        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         $this->line("   Total found: {$totalFound}");
         $this->line("   Total saved: {$totalSaved}");
         $this->line("   Total skipped (duplicates): {$totalSkipped}");
@@ -211,7 +209,7 @@ class ImportChainLocations extends Command
         }
         $this->newLine();
 
-        if (! $dryRun && $totalSaved > 0) {
+        if (!$dryRun && $totalSaved > 0) {
             $this->info("🎉 Successfully imported {$totalSaved} chain locations!");
         }
 
@@ -244,13 +242,12 @@ class ImportChainLocations extends Command
         if ($dryRun) {
             $addr = $loc['address'] ?: "{$loc['city']}, {$loc['state']}";
             $this->line("   ✓ [DRY RUN] {$loc['name']} - {$addr}");
-
             return 'saved';
         }
 
         try {
             $address = $loc['address'];
-            if (! $address && $loc['city'] && $loc['state']) {
+            if (!$address && $loc['city'] && $loc['state']) {
                 $address = "{$loc['city']}, {$loc['state']}";
             }
 
@@ -271,8 +268,7 @@ class ImportChainLocations extends Command
 
             return 'saved';
         } catch (\Exception $e) {
-            $this->error("   ❌ Failed to save {$loc['name']}: ".$e->getMessage());
-
+            $this->error("   ❌ Failed to save {$loc['name']}: " . $e->getMessage());
             return 'error';
         }
     }

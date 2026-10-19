@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Location;
 use App\Services\GooglePlacesScraperService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class ScrapeGoodIceLocations extends Command
 {
@@ -26,20 +27,19 @@ class ScrapeGoodIceLocations extends Command
         $autoApprove = $this->option('auto-approve');
         $dryRun = $this->option('dry-run');
 
-        if (! $lat || ! $lng) {
+        if (!$lat || !$lng) {
             $this->error('Please provide --lat and --lng options');
             $this->info('Example: php artisan scrape:good-ice --lat=37.7749 --lng=-122.4194');
-
             return 1;
         }
 
         $lat = (float) $lat;
         $lng = (float) $lng;
 
-        $this->info('🔍 Searching for good ice locations...');
+        $this->info("🔍 Searching for good ice locations...");
         $this->info("   Location: {$lat}, {$lng}");
         $this->info("   Radius: {$radius}m");
-        $this->info('   Business types: '.implode(', ', $types));
+        $this->info("   Business types: " . implode(', ', $types));
         $this->info("   Minimum ice score: {$minScore}");
         $this->newLine();
 
@@ -50,7 +50,7 @@ class ScrapeGoodIceLocations extends Command
 
         $results = $scraper->findGoodIceLocations($lat, $lng, $types, $radius);
 
-        $this->info('Found '.count($results).' potential locations');
+        $this->info("Found " . count($results) . " potential locations");
         $this->newLine();
 
         $saved = 0;
@@ -60,7 +60,6 @@ class ScrapeGoodIceLocations extends Command
         foreach ($results as $result) {
             if ($result['ice_score'] < $minScore) {
                 $filtered++;
-
                 continue;
             }
 
@@ -70,10 +69,9 @@ class ScrapeGoodIceLocations extends Command
             $this->line("   Rating: {$result['rating']} ({$result['reviews_count']} reviews)");
 
             if ($dryRun) {
-                $this->line('   [DRY RUN] Would save this location');
+                $this->line("   [DRY RUN] Would save this location");
                 $this->newLine();
                 $saved++;
-
                 continue;
             }
 
@@ -81,10 +79,9 @@ class ScrapeGoodIceLocations extends Command
             if ($result['place_id']) {
                 $existing = Location::where('place_id', $result['place_id'])->first();
                 if ($existing) {
-                    $this->line('   ⏭️  Already exists - skipping');
+                    $this->line("   ⏭️  Already exists - skipping");
                     $this->newLine();
                     $skipped++;
-
                     continue;
                 }
             }
@@ -110,22 +107,22 @@ class ScrapeGoodIceLocations extends Command
                 $this->newLine();
                 $saved++;
             } catch (\Exception $e) {
-                $this->error('   ❌ Failed to save: '.$e->getMessage());
+                $this->error("   ❌ Failed to save: " . $e->getMessage());
                 $this->newLine();
             }
         }
 
         $this->newLine();
         $this->info('=== Summary ===');
-        $this->info('Total found: '.count($results));
+        $this->info("Total found: " . count($results));
         $this->info("Filtered (score < {$minScore}): {$filtered}");
         $this->info("Saved: {$saved}");
         $this->info("Skipped (already exist): {$skipped}");
 
-        if (! $dryRun && $saved > 0) {
+        if (!$dryRun && $saved > 0) {
             $this->newLine();
             $this->info("🎉 Successfully scraped {$saved} new locations!");
-            if (! $autoApprove) {
+            if (!$autoApprove) {
                 $this->warn("Note: Locations are pending approval. Update their status to 'approved' to show on map.");
             }
         }

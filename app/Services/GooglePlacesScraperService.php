@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Log;
 class GooglePlacesScraperService
 {
     protected string $apiKey;
-
     protected string $baseUrl;
 
     public function __construct()
@@ -39,7 +38,6 @@ class GooglePlacesScraperService
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
-
             return [];
         }
 
@@ -63,7 +61,6 @@ class GooglePlacesScraperService
                 'body' => $response->body(),
                 'data_id' => $dataId,
             ]);
-
             return [];
         }
 
@@ -116,7 +113,7 @@ class GooglePlacesScraperService
 
         foreach ($reviews as $review) {
             $snippet = strtolower($review['snippet'] ?? '');
-
+            
             // Check for exclusions first
             $hasExclusion = false;
             foreach ($excludeKeywords as $exclude) {
@@ -138,7 +135,7 @@ class GooglePlacesScraperService
                 if (str_contains($snippet, $keyword)) {
                     $confidenceScore = 5;
                     $matchedKeyword = $keyword;
-
+                    
                     // Bonus if also has positive sentiment
                     foreach ($positiveSentiment as $sentiment) {
                         if (str_contains($snippet, $sentiment)) {
@@ -182,7 +179,6 @@ class GooglePlacesScraperService
         foreach ($filteredReviews as $match) {
             $totalScore += $match['confidence_score'] ?? 1;
         }
-
         return $totalScore;
     }
 
@@ -199,11 +195,11 @@ class GooglePlacesScraperService
 
         foreach ($businessTypes as $type) {
             Log::info("Searching for: {$type}");
-
+            
             $businesses = $this->searchBusinesses($type, $latitude, $longitude, $radius);
 
             foreach ($businesses as $business) {
-                if (! isset($business['data_id'])) {
+                if (!isset($business['data_id'])) {
                     continue;
                 }
 
@@ -215,7 +211,7 @@ class GooglePlacesScraperService
 
                 if ($iceScore > 0) {
                     // Extract just the snippets and keywords for debugging
-                    $matchedReviews = array_map(function ($item) {
+                    $matchedReviews = array_map(function($item) {
                         return [
                             'snippet' => $item['review']['snippet'] ?? '',
                             'keyword' => $item['matched_keyword'],
