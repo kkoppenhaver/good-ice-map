@@ -59,7 +59,7 @@ class LocationController extends Controller
             }])
             ->get();
 
-        return response()->json($locations);
+        return response()->json($locations->append('url'));
     }
 
     /**
@@ -156,13 +156,27 @@ class LocationController extends Controller
     /**
      * Display the specified location.
      */
-    public function show(Location $location)
+    public function show(Request $request, Location $location)
     {
         $this->authorize('view', $location);
 
+        // Permanently redirect /locations/12 (or a stale slug) to the canonical
+        // slug URL, keeping any query string (utm_* etc.) intact.
+        if ($request->route()->originalParameter('location') !== $location->getRouteKey()) {
+            $query = $request->server('QUERY_STRING');
+
+            return redirect($location->url.($query ? '?'.$query : ''), 301);
+        }
+
         $location->load(['images', 'ratings.user', 'submittedBy']);
 
-        return view('locations.show', compact('location'));
+        $response = response()->view('locations.show', compact('location'));
+
+        if (! $location->isApproved()) {
+            $response->header('X-Robots-Tag', 'noindex, nofollow');
+        }
+
+        return $response;
     }
 
     /**

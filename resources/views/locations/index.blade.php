@@ -1,6 +1,19 @@
 @extends('layouts.base')
 
-@section('title', 'Good Ice Map')
+@section('title', 'Good Ice Map — Every good ice spot near you')
+
+@section('meta')
+    <meta name="description" content="Interactive map of places serving nugget, pellet, sonic, and hospital ice, with photos and ratings from ice chewers. Find chewable ice near you.">
+    <link rel="canonical" href="{{ route('map') }}">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Good Ice Map">
+    <meta property="og:title" content="Good Ice Map — Every good ice spot near you">
+    <meta property="og:description" content="Interactive map of places serving nugget, pellet, sonic, and hospital ice, with photos and ratings from ice chewers.">
+    <meta property="og:url" content="{{ route('map') }}">
+    <meta property="og:image" content="{{ asset('images/map-hero.png') }}">
+    <meta name="twitter:card" content="summary_large_image">
+@endsection
 
 @section('head')
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -342,7 +355,7 @@
                                 <h3 style="font-weight: 900; font-size: 18px; text-transform: uppercase; margin-bottom: 8px;">${location.name}</h3>
                                 <p style="font-size: 14px; margin-bottom: 8px;">${location.address}</p>
                                 <p style="font-size: 14px; margin-bottom: 12px;">${rating}</p>
-                                <a href="/locations/${location.id}"
+                                <a href="${location.url}"
                                    style="display: inline-block; padding: 8px 16px; background: #9333ea; color: white; font-weight: 900; text-transform: uppercase; font-size: 14px; border: 2px solid black; text-decoration: none;">
                                     View Details
                                 </a>

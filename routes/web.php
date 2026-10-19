@@ -4,9 +4,14 @@ use App\Http\Controllers\AdminLocationController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RatingController;
+use App\Http\Controllers\RobotsController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SlackInteractionController;
 use App\Http\Middleware\VerifySlackSignature;
 use Illuminate\Support\Facades\Route;
+
+// Every {location} parameter accepts "12" or the canonical "12-some-slug".
+Route::pattern('location', '[0-9]+(?:-[A-Za-z0-9-]*)?');
 
 // Home page (landing for guests, map for authenticated users)
 Route::get('/', [LocationController::class, 'index'])->name('home');
@@ -21,6 +26,11 @@ Route::get('/api/locations', [LocationController::class, 'api'])->name('api.loca
 Route::middleware(['auth'])->group(function () {
     Route::post('/api/parse-maps-link', [LocationController::class, 'parseMapsLink'])->name('api.parse-maps-link');
 });
+
+// Crawler files (robots.txt is a route so the sitemap URL follows APP_URL
+// and non-production environments are kept out of the index)
+Route::get('/robots.txt', RobotsController::class)->name('robots');
+Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
 // Location routes
 Route::resource('locations', LocationController::class)->except(['index']);

@@ -1,14 +1,42 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $location->name }} - Good Ice Map</title>
+@extends('layouts.base')
 
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="font-mono bg-white text-black">
+@section('title', $location->name.' - Good Ice Map')
+
+@section('meta')
+    @php($description = $location->metaDescription())
+    @php($image = $location->images->first())
+
+    @if ($location->isApproved())
+        <meta name="description" content="{{ $description }}">
+        <link rel="canonical" href="{{ $location->url }}">
+
+        <meta property="og:type" content="place">
+        <meta property="og:site_name" content="Good Ice Map">
+        <meta property="og:title" content="{{ $location->name }} - Good Ice Map">
+        <meta property="og:description" content="{{ $description }}">
+        <meta property="og:url" content="{{ $location->url }}">
+        <meta property="place:location:latitude" content="{{ $location->latitude }}">
+        <meta property="place:location:longitude" content="{{ $location->longitude }}">
+        @if ($image)
+            <meta property="og:image" content="{{ $image->url }}">
+            <meta property="og:image:alt" content="The ice at {{ $location->name }}">
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:image" content="{{ $image->url }}">
+        @else
+            <meta property="og:image" content="{{ asset('images/map-hero.png') }}">
+            <meta name="twitter:card" content="summary">
+        @endif
+        <meta name="twitter:title" content="{{ $location->name }} - Good Ice Map">
+        <meta name="twitter:description" content="{{ $description }}">
+
+        <script type="application/ld+json">{!! \App\Support\StructuredData::toJson($location->structuredData()) !!}</script>
+        <script type="application/ld+json">{!! \App\Support\StructuredData::toJson($location->breadcrumbStructuredData()) !!}</script>
+    @else
+        <meta name="robots" content="noindex, nofollow">
+    @endif
+@endsection
+
+@section('body')
     <nav class="bg-white border-b-5 border-black">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
@@ -266,5 +294,4 @@
             </form>
         </x-modal>
     @endcan
-</body>
-</html>
+@endsection

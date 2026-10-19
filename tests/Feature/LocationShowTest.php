@@ -27,7 +27,7 @@ class LocationShowTest extends TestCase
     {
         $location = $this->makeLocation('approved');
 
-        $this->get("/locations/{$location->id}")->assertOk();
+        $this->get(route('locations.show', $location))->assertOk();
     }
 
     public function test_pending_location_404s_for_guest(): void
@@ -53,7 +53,7 @@ class LocationShowTest extends TestCase
         $location = $this->makeLocation('pending', $owner);
 
         $this->actingAs($owner)
-            ->get("/locations/{$location->id}")
+            ->get(route('locations.show', $location))
             ->assertOk()
             ->assertSee('Pending Review');
     }
@@ -64,7 +64,7 @@ class LocationShowTest extends TestCase
         $location = $this->makeLocation('pending');
 
         $this->actingAs($admin)
-            ->get("/locations/{$location->id}")
+            ->get(route('locations.show', $location))
             ->assertOk();
     }
 
@@ -84,7 +84,7 @@ class LocationShowTest extends TestCase
         $location = $this->makeLocation('rejected');
 
         $this->actingAs($admin)
-            ->get("/locations/{$location->id}")
+            ->get(route('locations.show', $location))
             ->assertOk();
     }
 }

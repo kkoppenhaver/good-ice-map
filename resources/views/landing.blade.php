@@ -19,6 +19,8 @@
     <meta name="twitter:image" content="{{ asset('images/map-hero.png') }}">
 
     <link rel="canonical" href="{{ url('/') }}">
+
+    <script type="application/ld+json">{!! \App\Support\StructuredData::toJson(\App\Support\StructuredData::website()) !!}</script>
 @endsection
 
 @section('head')
