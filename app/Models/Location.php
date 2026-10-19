@@ -2,7 +2,11 @@
 
 namespace App\Models;
 
+use App\Jobs\GeocodeLocation;
+use App\Support\AddressParser;
+use App\Support\ChainMatcher;
 use App\Support\StructuredData;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,10 +18,20 @@ class Location extends Model
 {
     use SoftDeletes;
 
+    /**
+     * Guards against dispatching a second geocode job for the same instance
+     * within one request (wasRecentlyCreated stays true after the first save).
+     */
+    public bool $geocodeDispatched = false;
+
     protected $fillable = [
         'name',
         'description',
         'address',
+        'city',
+        'state',
+        'country',
+        'chain',
         'google_maps_link',
         'latitude',
         'longitude',
@@ -83,6 +97,26 @@ class Location extends Model
 
     protected static function booted(): void
     {
+        // Derive city/state/country from the address and chain from the name
+        // whenever either changes (or the derived fields are still empty).
+        // (Wrapped in braces: a listener returning false would cancel the save.)
+        static::saving(function (self $location) {
+            $location->deriveGeoFields();
+        });
+
+        // If the address could not be parsed, reverse geocode after the
+        // response is sent. Only on create or an address change, so a failed
+        // lookup cannot re-trigger itself.
+        static::saved(function (self $location) {
+            if ($location->city === null
+                && ! $location->geocodeDispatched
+                && ($location->wasRecentlyCreated || $location->wasChanged('address'))
+                && $location->latitude !== null && $location->longitude !== null) {
+                $location->geocodeDispatched = true;
+                GeocodeLocation::dispatch($location)->afterResponse();
+            }
+        });
+
         // Only changes that alter the sitemap bust its cache. Rating updates
         // touch average_rating/total_ratings on every submission and must not.
         static::created(fn () => Cache::forget('sitemap.xml'));
@@ -93,6 +127,101 @@ class Location extends Model
         });
         static::deleted(fn () => Cache::forget('sitemap.xml'));
         static::restored(fn () => Cache::forget('sitemap.xml'));
+    }
+
+    /**
+     * Fill city/state/country from the address and chain from the name.
+     * Returns true when anything changed.
+     *
+     * Geo (city/state/country), in order:
+     *  1. $force: always re-parse the address, even over manual or geocoded values.
+     *  2. Any of city/state/country set explicitly in this save: keep them.
+     *  3. Address unchanged and city already known: nothing to do.
+     *  4. Address changed: apply the parse result, nulls included, so a stale
+     *     city never survives a new address (the geocode job then refills it).
+     *  5. Address unchanged and city unknown: apply the parse only if it found
+     *     a city, so a later geocode result is not needed twice.
+     *
+     * Chain, in order:
+     *  1. $force: always re-match the name.
+     *  2. Chain set explicitly in this save: keep it.
+     *  3. Name unchanged and chain already known: nothing to do.
+     *  4. Otherwise match the name (null when it is not a known chain).
+     */
+    public function deriveGeoFields(bool $force = false): bool
+    {
+        $before = $this->only(['city', 'state', 'country', 'chain']);
+
+        $this->deriveGeo($force);
+        $this->deriveChain($force);
+
+        return $before !== $this->only(['city', 'state', 'country', 'chain']);
+    }
+
+    private function deriveGeo(bool $force): void
+    {
+        if (! $force && $this->isDirty(['city', 'state', 'country'])) {
+            return;
+        }
+
+        $addressChanged = $this->isDirty('address');
+
+        if (! $force && ! $addressChanged && $this->city !== null) {
+            return;
+        }
+
+        $parsed = AddressParser::parse($this->address);
+
+        if (! $force && ! $addressChanged && $parsed['city'] === null) {
+            return;
+        }
+
+        $this->city = $parsed['city'];
+        $this->state = $parsed['state'];
+        $this->country = $parsed['country'];
+    }
+
+    private function deriveChain(bool $force): void
+    {
+        if (! $force && $this->isDirty('chain')) {
+            return;
+        }
+
+        if (! $force && ! $this->isDirty('name') && $this->chain !== null) {
+            return;
+        }
+
+        $this->chain = ChainMatcher::match($this->name);
+    }
+
+    /**
+     * Config entry for this location's chain, if any.
+     */
+    public function chainConfig(): ?array
+    {
+        return $this->chain ? config("chains.{$this->chain}") : null;
+    }
+
+    public function getChainNameAttribute(): ?string
+    {
+        return $this->chainConfig()['name'] ?? null;
+    }
+
+    /**
+     * "New York, NY" style label, or null when the city is unknown.
+     */
+    public function getPlaceLabelAttribute(): ?string
+    {
+        if (! $this->city) {
+            return null;
+        }
+
+        return $this->state ? "{$this->city}, {$this->state}" : $this->city;
+    }
+
+    public function scopeApproved(Builder $query): Builder
+    {
+        return $query->where('status', 'approved');
     }
 
     public function isApproved(): bool
