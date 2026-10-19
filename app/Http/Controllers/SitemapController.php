@@ -6,6 +6,11 @@ use App\Models\Location;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * Single-file sitemap. The protocol caps a file at 50,000 URLs / 50 MB, so once
+ * programmatic city/chain pages (or a full chain import) land this should
+ * become a sitemap index pointing at per-type child sitemaps.
+ */
 class SitemapController extends Controller
 {
     public function __invoke(): Response

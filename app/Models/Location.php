@@ -83,11 +83,16 @@ class Location extends Model
 
     protected static function booted(): void
     {
-        // Any change (status, name, soft delete) can alter the sitemap.
-        $bust = fn () => Cache::forget('sitemap.xml');
-
-        static::saved($bust);
-        static::deleted($bust);
+        // Only changes that alter the sitemap bust its cache. Rating updates
+        // touch average_rating/total_ratings on every submission and must not.
+        static::created(fn () => Cache::forget('sitemap.xml'));
+        static::updated(function (self $location) {
+            if ($location->wasChanged(['status', 'name'])) {
+                Cache::forget('sitemap.xml');
+            }
+        });
+        static::deleted(fn () => Cache::forget('sitemap.xml'));
+        static::restored(fn () => Cache::forget('sitemap.xml'));
     }
 
     public function isApproved(): bool

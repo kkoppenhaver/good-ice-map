@@ -10,6 +10,9 @@ use App\Http\Controllers\SlackInteractionController;
 use App\Http\Middleware\VerifySlackSignature;
 use Illuminate\Support\Facades\Route;
 
+// Every {location} parameter accepts "12" or the canonical "12-some-slug".
+Route::pattern('location', '[0-9]+(?:-[A-Za-z0-9-]*)?');
+
 // Home page (landing for guests, map for authenticated users)
 Route::get('/', [LocationController::class, 'index'])->name('home');
 
@@ -29,10 +32,8 @@ Route::middleware(['auth'])->group(function () {
 Route::get('/robots.txt', RobotsController::class)->name('robots');
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 
-// Location routes ({location} accepts "12" or the canonical "12-some-slug")
-Route::resource('locations', LocationController::class)
-    ->except(['index'])
-    ->where(['location' => '[0-9]+(?:-[A-Za-z0-9-]*)?']);
+// Location routes
+Route::resource('locations', LocationController::class)->except(['index']);
 
 // Rating routes
 Route::post('/locations/{location}/rate', [RatingController::class, 'store'])->name('locations.rate');

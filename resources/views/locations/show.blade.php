@@ -3,35 +3,36 @@
 @section('title', $location->name.' - Good Ice Map')
 
 @section('meta')
+    @php($description = $location->metaDescription())
+    @php($image = $location->images->first())
+
     @if ($location->isApproved())
-        <meta name="description" content="{{ $location->metaDescription() }}">
+        <meta name="description" content="{{ $description }}">
         <link rel="canonical" href="{{ $location->url }}">
-    @else
-        <meta name="robots" content="noindex, nofollow">
-    @endif
 
-    <meta property="og:type" content="place">
-    <meta property="og:site_name" content="Good Ice Map">
-    <meta property="og:title" content="{{ $location->name }} - Good Ice Map">
-    <meta property="og:description" content="{{ $location->metaDescription() }}">
-    <meta property="og:url" content="{{ $location->url }}">
-    <meta property="place:location:latitude" content="{{ $location->latitude }}">
-    <meta property="place:location:longitude" content="{{ $location->longitude }}">
-    @if ($location->images->isNotEmpty())
-        <meta property="og:image" content="{{ $location->images->first()->url }}">
-        <meta property="og:image:alt" content="The ice at {{ $location->name }}">
-        <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:image" content="{{ $location->images->first()->url }}">
-    @else
-        <meta property="og:image" content="{{ asset('images/map-hero.png') }}">
-        <meta name="twitter:card" content="summary">
-    @endif
-    <meta name="twitter:title" content="{{ $location->name }} - Good Ice Map">
-    <meta name="twitter:description" content="{{ $location->metaDescription() }}">
+        <meta property="og:type" content="place">
+        <meta property="og:site_name" content="Good Ice Map">
+        <meta property="og:title" content="{{ $location->name }} - Good Ice Map">
+        <meta property="og:description" content="{{ $description }}">
+        <meta property="og:url" content="{{ $location->url }}">
+        <meta property="place:location:latitude" content="{{ $location->latitude }}">
+        <meta property="place:location:longitude" content="{{ $location->longitude }}">
+        @if ($image)
+            <meta property="og:image" content="{{ $image->url }}">
+            <meta property="og:image:alt" content="The ice at {{ $location->name }}">
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:image" content="{{ $image->url }}">
+        @else
+            <meta property="og:image" content="{{ asset('images/map-hero.png') }}">
+            <meta name="twitter:card" content="summary">
+        @endif
+        <meta name="twitter:title" content="{{ $location->name }} - Good Ice Map">
+        <meta name="twitter:description" content="{{ $description }}">
 
-    @if ($location->isApproved())
         <script type="application/ld+json">{!! \App\Support\StructuredData::toJson($location->structuredData()) !!}</script>
         <script type="application/ld+json">{!! \App\Support\StructuredData::toJson($location->breadcrumbStructuredData()) !!}</script>
+    @else
+        <meta name="robots" content="noindex, nofollow">
     @endif
 @endsection
 

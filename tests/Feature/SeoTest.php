@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Location;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class SeoTest extends TestCase
@@ -99,7 +100,8 @@ class SeoTest extends TestCase
             ->assertOk()
             ->assertSee('<meta name="robots" content="noindex, nofollow">', false)
             ->assertDontSee('rel="canonical"', false)
-            ->assertDontSee('application/ld+json', false);
+            ->assertDontSee('application/ld+json', false)
+            ->assertDontSee('property="og:', false);
     }
 
     public function test_api_locations_include_canonical_url(): void
@@ -242,6 +244,38 @@ class SeoTest extends TestCase
         $this->get($this->makeLocation(['name' => 'Fine Spot'])->url)
             ->assertOk()
             ->assertHeaderMissing('X-Robots-Tag');
+    }
+
+    public function test_trailing_slash_is_served_without_a_redirect_loop(): void
+    {
+        $location = $this->makeLocation();
+
+        // Laravel strips the trailing slash before routing, so the route key
+        // matches and the page is served directly rather than redirecting.
+        $this->get($location->url.'/')->assertOk();
+    }
+
+    public function test_non_numeric_location_parameter_404s_on_every_location_route(): void
+    {
+        $user = User::factory()->create(['is_admin' => true]);
+
+        $this->get('/locations/abc')->assertNotFound();
+        $this->actingAs($user)->post('/locations/abc/rate', ['rating' => 5])->assertNotFound();
+        $this->actingAs($user)->post('/admin/locations/abc/approve')->assertNotFound();
+        $this->actingAs($user)->patch('/locations/abc', ['name' => 'x'])->assertNotFound();
+    }
+
+    public function test_rating_updates_do_not_bust_sitemap_cache(): void
+    {
+        $location = $this->makeLocation();
+        $this->get('/sitemap.xml')->assertOk();
+        $this->assertTrue(Cache::has('sitemap.xml'));
+
+        $location->update(['average_rating' => 4.0, 'total_ratings' => 3]);
+        $this->assertTrue(Cache::has('sitemap.xml'));
+
+        $location->update(['name' => 'Renamed']);
+        $this->assertFalse(Cache::has('sitemap.xml'));
     }
 
     public function test_sitemap_cache_is_busted_when_a_location_changes(): void

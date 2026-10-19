@@ -162,7 +162,7 @@ class LocationController extends Controller
 
         // Permanently redirect /locations/12 (or a stale slug) to the canonical
         // slug URL, keeping any query string (utm_* etc.) intact.
-        if ($request->path() !== trim(parse_url($location->url, PHP_URL_PATH), '/')) {
+        if ($request->route()->originalParameter('location') !== $location->getRouteKey()) {
             $query = $request->server('QUERY_STRING');
 
             return redirect($location->url.($query ? '?'.$query : ''), 301);
